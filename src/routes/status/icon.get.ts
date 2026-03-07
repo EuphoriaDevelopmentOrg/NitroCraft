@@ -1,11 +1,12 @@
 import { fetchServerIcon } from "minecraft-toolkit";
 import { config } from "../../config";
 import { getQueryParams } from "../../utils/query";
+import { validateServerProbeAddress } from "../../utils/network-safety";
 import {
+  parseBoundedIntegerQuery,
   jsonBadRequest,
   jsonResponse,
   jsonToolkitError,
-  parseIntegerQuery,
 } from "../../utils/toolkit";
 
 function serverAddress(query: URLSearchParams): string {
@@ -18,10 +19,14 @@ export default defineEventHandler(async (event) => {
   if (!address) {
     return jsonBadRequest(event, "Missing required query: address (or host).");
   }
+  const targetValidation = await validateServerProbeAddress(address, config.server.allowPrivateStatusTargets);
+  if (!targetValidation.ok) {
+    return jsonBadRequest(event, targetValidation.reason);
+  }
 
-  const port = parseIntegerQuery(event, query, "port");
-  const timeoutMs = parseIntegerQuery(event, query, "timeoutMs");
-  const protocolVersion = parseIntegerQuery(event, query, "protocolVersion");
+  const port = parseBoundedIntegerQuery(event, query, "port", 1, 65_535);
+  const timeoutMs = parseBoundedIntegerQuery(event, query, "timeoutMs", 100, 10_000);
+  const protocolVersion = parseBoundedIntegerQuery(event, query, "protocolVersion", 0, 1_000_000);
 
   if (port === null || timeoutMs === null || protocolVersion === null) {
     return jsonBadRequest(event, "Invalid numeric query value.");

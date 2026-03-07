@@ -7,6 +7,7 @@ const IMAGE_ROOTS = [
   resolve(process.cwd(), "public", "images"),
   resolve(process.cwd(), ".output", "public", "images"),
 ];
+const defaultAssetPaths = new Map<string, Promise<string>>();
 
 export async function exists(path: string): Promise<boolean> {
   try {
@@ -28,13 +29,28 @@ export async function ensureImageDirectories(): Promise<void> {
 }
 
 async function resolveImageAsset(filename: string): Promise<string> {
-  for (const root of IMAGE_ROOTS) {
-    const candidate = join(root, filename);
-    if (await exists(candidate)) {
-      return candidate;
-    }
+  const cached = defaultAssetPaths.get(filename);
+  if (cached) {
+    return cached;
   }
-  throw new Error(`Default image asset not found: ${filename}`);
+
+  const resolver = (async () => {
+    for (const root of IMAGE_ROOTS) {
+      const candidate = join(root, filename);
+      if (await exists(candidate)) {
+        return candidate;
+      }
+    }
+    throw new Error(`Default image asset not found: ${filename}`);
+  })();
+
+  defaultAssetPaths.set(filename, resolver);
+  try {
+    return await resolver;
+  } catch (err) {
+    defaultAssetPaths.delete(filename);
+    throw err;
+  }
 }
 
 export async function defaultAvatarPath(name: "mhf_alex" | "mhf_steve"): Promise<string> {

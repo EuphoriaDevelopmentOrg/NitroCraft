@@ -129,6 +129,42 @@ test("players route rejects invalid player input", async () => {
   assert.match(String(body), /Invalid player input/i);
 });
 
+test("status route blocks private probe targets by default", async () => {
+  const route = (await import("../../src/routes/status/server.get")).default;
+  const originalAllowPrivate = config.server.allowPrivateStatusTargets;
+  try {
+    (config.server as any).allowPrivateStatusTargets = false;
+
+    const { event, res } = createMockEvent({
+      url: "/status/server?address=127.0.0.1",
+    });
+
+    const body = await route(event);
+    assert.equal(res.statusCode, 422);
+    assert.match(String(body), /Private\/local targets are not allowed/i);
+  } finally {
+    (config.server as any).allowPrivateStatusTargets = originalAllowPrivate;
+  }
+});
+
+test("status routes reject out-of-range numeric values", async () => {
+  const route = (await import("../../src/routes/status/java.get")).default;
+  const originalAllowPrivate = config.server.allowPrivateStatusTargets;
+  try {
+    (config.server as any).allowPrivateStatusTargets = true;
+
+    const { event, res } = createMockEvent({
+      url: "/status/java?address=127.0.0.1&port=70000",
+    });
+
+    const body = await route(event);
+    assert.equal(res.statusCode, 422);
+    assert.match(String(body), /Invalid numeric query value/i);
+  } finally {
+    (config.server as any).allowPrivateStatusTargets = originalAllowPrivate;
+  }
+});
+
 test("request limiter middleware returns 429 when limit is exceeded", async () => {
   const original = {
     max: config.server.requestsRateLimit.max,

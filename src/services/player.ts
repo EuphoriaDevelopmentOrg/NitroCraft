@@ -27,6 +27,7 @@ const TEXTURE_BASE = "https://textures.minecraft.net/texture/";
 const ALLOWED_TEXTURE_HOSTS = new Set(["textures.minecraft.net"]);
 const inflight = new Map<string, Promise<CacheDetails>>();
 const inflightRenders = new Map<string, Promise<Buffer>>();
+const inflightTextures = new Map<string, Promise<Buffer>>();
 
 function toolkitStatusCode(err: unknown): number | undefined {
   if (!err || typeof err !== "object") {
@@ -139,9 +140,11 @@ async function ensureSkinAssets(hash: string, skinUrl: string): Promise<void> {
   const faceFile = facePath(hash);
   const helmFile = helmPath(hash);
 
-  const hasSkin = await exists(skinFile);
-  const hasFace = await exists(faceFile);
-  const hasHelm = await exists(helmFile);
+  const [hasSkin, hasFace, hasHelm] = await Promise.all([
+    exists(skinFile),
+    exists(faceFile),
+    exists(helmFile),
+  ]);
 
   if (hasSkin && hasFace && hasHelm) {
     return;
@@ -192,11 +195,15 @@ async function refreshDetails(userId: string, fallback: CacheDetails | null): Pr
     const capeHash = extractTextureHash(capeUrl);
     const slim = profile.skin?.metadata?.model === "slim";
 
+    const tasks: Promise<void>[] = [];
     if (skinHash && skinUrl) {
-      await ensureSkinAssets(skinHash, skinUrl);
+      tasks.push(ensureSkinAssets(skinHash, skinUrl));
     }
     if (capeHash && capeUrl) {
-      await ensureCapeAsset(capeHash, capeUrl);
+      tasks.push(ensureCapeAsset(capeHash, capeUrl));
+    }
+    if (tasks.length) {
+      await Promise.all(tasks);
     }
 
     const details: CacheDetails = {
@@ -224,14 +231,14 @@ async function refreshDetails(userId: string, fallback: CacheDetails | null): Pr
   }
 }
 
-async function fetchFreshDetails(userId: string): Promise<CacheDetails> {
+async function fetchFreshDetails(userId: string, existing?: CacheDetails | null): Promise<CacheDetails> {
   const current = inflight.get(userId);
   if (current) {
     return current;
   }
 
-  const existing = await cache.getDetails(userId);
-  const promise = refreshDetails(userId, existing)
+  const fallback = existing === undefined ? await cache.getDetails(userId) : existing;
+  const promise = refreshDetails(userId, fallback)
     .finally(() => {
       inflight.delete(userId);
     });
@@ -254,7 +261,7 @@ async function getTextureHash(userId: string, type: TextureType): Promise<Textur
   }
 
   try {
-    const refreshed = await fetchFreshDetails(userId);
+    const refreshed = await fetchFreshDetails(userId, cached);
     return {
       hash: refreshed[type],
       slim: refreshed.slim,
@@ -276,19 +283,40 @@ async function getTextureHash(userId: string, type: TextureType): Promise<Textur
 }
 
 async function loadTextureByHash(hash: string, filePath: string): Promise<Buffer> {
-  if (await exists(filePath)) {
-    return openImage(filePath);
+  try {
+    return await openImage(filePath);
+  } catch (err) {
+    const code = String((err as { code?: unknown }).code || "").toUpperCase();
+    if (code !== "ENOENT") {
+      throw err;
+    }
   }
 
-  const downloaded = await fetchBuffer(`${TEXTURE_BASE}${hash}`);
-  if (!downloaded) {
-    const err = new Error("Texture not found") as Error & { code?: string };
-    err.code = "ENOENT";
-    throw err;
+  const existing = inflightTextures.get(filePath);
+  if (existing) {
+    return existing;
   }
 
-  await saveImage(downloaded, filePath);
-  return downloaded;
+  const promise = (async () => {
+    const downloaded = await fetchBuffer(`${TEXTURE_BASE}${hash}`);
+    if (!downloaded) {
+      const err = new Error("Texture not found") as Error & { code?: string };
+      err.code = "ENOENT";
+      throw err;
+    }
+
+    await saveImage(downloaded, filePath);
+    return downloaded;
+  })();
+
+  inflightTextures.set(filePath, promise);
+  try {
+    return await promise;
+  } finally {
+    if (inflightTextures.get(filePath) === promise) {
+      inflightTextures.delete(filePath);
+    }
+  }
 }
 
 export async function getAvatar(userId: string, size: number, overlay: boolean): Promise<BinaryResult> {
@@ -369,12 +397,17 @@ export async function getSkin(userId: string): Promise<BinaryResult> {
     const buffer = await loadTextureByHash(lookup.hash, skinFile);
 
     const faceFile = facePath(lookup.hash);
-    if (!(await exists(faceFile))) {
+    const helmFile = helmPath(lookup.hash);
+    const [hasFace, hasHelm] = await Promise.all([
+      exists(faceFile),
+      exists(helmFile),
+    ]);
+
+    if (!hasFace) {
       await extractFace(buffer, faceFile);
     }
 
-    const helmFile = helmPath(lookup.hash);
-    if (!(await exists(helmFile))) {
+    if (!hasHelm) {
       await extractHelm(faceFile, buffer, helmFile);
     }
 

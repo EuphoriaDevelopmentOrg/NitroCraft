@@ -8,7 +8,10 @@ let running = false;
 let timer: NodeJS.Timeout | null = null;
 
 function thresholdMs(): number {
-  return Date.now() - config.caching.retentionDays * 24 * 60 * 60 * 1000;
+  const days = Number.isFinite(config.caching.retentionDays) && config.caching.retentionDays > 0
+    ? config.caching.retentionDays
+    : 30;
+  return Date.now() - days * 24 * 60 * 60 * 1000;
 }
 
 async function cleanupRedis(threshold: number): Promise<number> {
@@ -107,15 +110,23 @@ async function runCleanup(trigger: "startup" | "interval"): Promise<void> {
 }
 
 export function startRetention(): void {
-  if (!config.caching.retentionEnabled || config.caching.retentionDays <= 0) {
+  const retentionDays = Number.isFinite(config.caching.retentionDays) ? config.caching.retentionDays : 0;
+  if (!config.caching.retentionEnabled || retentionDays <= 0) {
     log("retention cleanup disabled");
     return;
   }
 
-  const intervalHours = Math.max(1 / 60, config.caching.retentionIntervalHours);
+  if (timer) {
+    return;
+  }
+
+  const configuredIntervalHours = Number.isFinite(config.caching.retentionIntervalHours)
+    ? config.caching.retentionIntervalHours
+    : 24;
+  const intervalHours = Math.max(1 / 60, configuredIntervalHours);
   log(
     "retention cleanup enabled",
-    `max-age=${config.caching.retentionDays.toFixed(2)}d`,
+    `max-age=${retentionDays.toFixed(2)}d`,
     `interval=${intervalHours.toFixed(2)}h`,
   );
 
@@ -129,6 +140,9 @@ export function startRetention(): void {
       error("retention interval cleanup failed", err);
     });
   }, intervalMs);
+  if (typeof timer.unref === "function") {
+    timer.unref();
+  }
 }
 
 export function stopRetention(): void {
@@ -136,4 +150,5 @@ export function stopRetention(): void {
     clearInterval(timer);
     timer = null;
   }
+  running = false;
 }

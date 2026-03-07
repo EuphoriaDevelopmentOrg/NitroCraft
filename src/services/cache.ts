@@ -253,7 +253,7 @@ class MetadataCache {
   }
 
   async updateTimestamp(userId: string, temporary = false): Promise<void> {
-    const offset = temporary ? (config.caching.localSeconds - 60) * 1000 : 0;
+    const offset = temporary ? Math.max(0, config.caching.localSeconds - 60) * 1000 : 0;
     await this.saveDetails(userId, { time: Date.now() - offset });
   }
 

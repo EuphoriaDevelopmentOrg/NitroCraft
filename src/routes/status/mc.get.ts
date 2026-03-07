@@ -6,7 +6,9 @@ const SKINS_HEALTH_URL = "https://textures.minecraft.net/";
 const STATUS_CACHE_TTL_MS = 60 * 1000;
 
 let cachedStatus: unknown = null;
+let cachedBody = "";
 let cachedAt = 0;
+let inflightStatus: Promise<string> | null = null;
 
 async function checkHealth(url: string): Promise<{ status: "up" | "down"; code: number | null }> {
   const controller = new AbortController();
@@ -29,33 +31,44 @@ async function checkHealth(url: string): Promise<{ status: "up" | "down"; code: 
 }
 
 export default defineEventHandler(async (event) => {
-  if (cachedStatus && Date.now() - cachedAt < STATUS_CACHE_TTL_MS) {
+  const now = Date.now();
+  if (cachedStatus && now - cachedAt < STATUS_CACHE_TTL_MS) {
     return respond(event, {
       status: 1,
-      body: JSON.stringify(cachedStatus),
+      body: cachedBody,
       type: "application/json; charset=utf-8",
       cacheControl: "no-cache, max-age=0",
     });
   }
 
-  const [session, skins] = await Promise.all([
-    checkHealth(SESSION_HEALTH_URL),
-    checkHealth(SKINS_HEALTH_URL),
-  ]);
+  if (!inflightStatus) {
+    inflightStatus = (async () => {
+      const [session, skins] = await Promise.all([
+        checkHealth(SESSION_HEALTH_URL),
+        checkHealth(SKINS_HEALTH_URL),
+      ]);
 
-  const payload = {
-    report: {
-      session,
-      skins,
-    },
-  };
+      const payload = {
+        report: {
+          session,
+          skins,
+        },
+      };
 
-  cachedStatus = payload;
-  cachedAt = Date.now();
+      cachedStatus = payload;
+      cachedBody = JSON.stringify(payload);
+      cachedAt = Date.now();
+      return cachedBody;
+    })()
+      .finally(() => {
+        inflightStatus = null;
+      });
+  }
+  const body = await inflightStatus;
 
   return respond(event, {
     status: 1,
-    body: JSON.stringify(payload),
+    body,
     type: "application/json; charset=utf-8",
     cacheControl: "no-cache, max-age=0",
   });

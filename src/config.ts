@@ -186,6 +186,8 @@ export const config = {
       trustProxy: envBool("REQUESTS_RATE_LIMIT_TRUST_PROXY", false),
       excludePaths: envCsv("REQUESTS_RATE_LIMIT_EXCLUDE", []),
     },
+    allowPrivateStatusTargets: envBool("STATUS_ALLOW_PRIVATE_TARGETS", false),
+    defaultRedirectAllowlist: envCsv("DEFAULT_REDIRECT_ALLOWLIST", []),
     maxTextureBytes: envInt("MAX_TEXTURE_BYTES", 1_048_576),
     corsAllowAll: corsConfig.allowAll,
     corsOrigins: corsConfig.origins,

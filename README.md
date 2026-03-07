@@ -104,7 +104,9 @@ Create a `.env` file and configure the following values.
 | `REQUESTS_RATE_LIMIT_MAX_KEYS` | Maximum tracked rate-limit keys. |
 | `REQUESTS_RATE_LIMIT_TRUST_PROXY` | Proxy-trust behavior for client IP detection. |
 | `REQUESTS_RATE_LIMIT_EXCLUDE` | Comma-separated routes/patterns excluded from inbound limits. |
+| `STATUS_ALLOW_PRIVATE_TARGETS` | Allow private/local network addresses in `/status/*` probe endpoints (`false` by default). |
 | `MAX_TEXTURE_BYTES` | Maximum allowed texture payload size. |
+| `DEFAULT_REDIRECT_ALLOWLIST` | Comma-separated host allowlist for `default=` URL redirects (supports `*.example.com`). If unset, only `EXTERNAL_URL` host is allowed. |
 | `CORS_ORIGIN` | Empty/`All` allows all origins; otherwise use a comma-separated allowlist. |
 | `RETENTION_DAYS` / `RETENTION_MAX_AGE_HOURS` | Cache/data max age. |
 | `RETENTION_INTERVAL_HOURS` / `RETENTION_INTERVAL_DAYS` | Cleanup schedule interval. |

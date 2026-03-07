@@ -97,8 +97,32 @@ export function parseIntegerQuery(
     return undefined;
   }
 
-  const parsed = Number.parseInt(raw, 10);
-  if (Number.isNaN(parsed)) {
+  const value = raw.trim();
+  if (!/^-?\d+$/.test(value)) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isSafeInteger(parsed)) {
+    return null;
+  }
+
+  return parsed;
+}
+
+export function parseBoundedIntegerQuery(
+  event: any,
+  query: URLSearchParams,
+  name: string,
+  min: number,
+  max: number,
+): number | null | undefined {
+  const parsed = parseIntegerQuery(event, query, name);
+  if (parsed === null || parsed === undefined) {
+    return parsed;
+  }
+
+  if (parsed < min || parsed > max) {
     return null;
   }
 
