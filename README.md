@@ -2,13 +2,15 @@
 
 NitroCraft is a Minecraft avatar/render API built on Nitro and `minecraft-toolkit`.
 
-![NitroCraft Logo](public/NitroCraft.png)
+<p align="center">
+  <img src="public/NitroCraft.png" alt="NitroCraft Logo" width="320" />
+</p>
 
 ## Preview
 
-![Steve Avatar](public/images/mhf_steve.png)
-![Alex Avatar](public/images/mhf_alex.png)
-![Steve Skin](public/images/mhf_steve_skin.png)
+| Steve Avatar | Alex Avatar | Steve Skin |
+| --- | --- | --- |
+| ![Steve Avatar](public/images/mhf_steve.png) | ![Alex Avatar](public/images/mhf_alex.png) | ![Steve Skin](public/images/mhf_steve_skin.png) |
 
 ## Quick Links
 
@@ -26,27 +28,40 @@ NitroCraft is a Minecraft avatar/render API built on Nitro and `minecraft-toolki
 - Optional inbound per-IP request rate limiting (`REQUESTS_RATE_LIMIT`)
 - Nitro runtime with `pnpm` workflows
 
-## Endpoints
+## API Endpoints
+
+### Avatar, Skin, and Render
 
 - `GET /avatars/{uuid}?size=160&overlay`
 - `GET /skins/{uuid}`
 - `GET /capes/{uuid}`
 - `GET /renders/head/{uuid}?scale=6&overlay`
 - `GET /renders/body/{uuid}?scale=6&overlay`
-- `GET /status/mc`
+
+### Player Lookup
+
 - `GET /players/{uuid-or-username}`
 - `GET /players/{uuid-or-username}/profile`
 - `GET /players/{uuid-or-username}/history`
 - `GET /players/{uuid-or-username}/skin-metadata`
+
+### Server Status
+
+- `GET /status/mc`
 - `GET /status/java?address=host`
 - `GET /status/bedrock?address=host`
 - `GET /status/server?address=host&edition=auto`
 - `GET /status/icon?address=host`
+
+### Text Formatting
+
 - `GET /format/html?text=...`
 - `GET /format/strip?text=...`
 - `GET /format/css`
 
-## Local Development
+## Getting Started
+
+### Local Development
 
 ```bash
 corepack enable
@@ -55,14 +70,14 @@ pnpm install
 pnpm dev
 ```
 
-Build and run production output:
+### Build and Run Production Output
 
 ```bash
 pnpm build
 pnpm start
 ```
 
-Run tests:
+### Run Tests
 
 ```bash
 pnpm test
@@ -77,24 +92,25 @@ docker compose up -d
 
 ## Environment
 
-Copy `.env.example` to `.env` and adjust values.
+Create a `.env` file and configure the following values.
 
-Key variables:
-- `CACHE_BACKEND` (`redis`, `memory`, `none`)
-- `REDIS_URL`
-- `SESSIONS_RATE_LIMIT`
-- `REQUESTS_RATE_LIMIT`
-- `REQUESTS_RATE_LIMIT_WINDOW_MS`
-- `REQUESTS_RATE_LIMIT_MAX_KEYS`
-- `REQUESTS_RATE_LIMIT_TRUST_PROXY`
-- `REQUESTS_RATE_LIMIT_EXCLUDE`
-- `MAX_TEXTURE_BYTES`
-- `CORS_ORIGIN` (empty/`All` => allow all, otherwise comma-separated origin allowlist)
-- `RETENTION_DAYS` or `RETENTION_MAX_AGE_HOURS`
-- `RETENTION_INTERVAL_HOURS` or `RETENTION_INTERVAL_DAYS`
-- `PORT`
-- `BIND`
-- `EXTERNAL_URL`
+| Variable | Purpose |
+| --- | --- |
+| `CACHE_BACKEND` | Cache backend: `redis`, `memory`, or `none`. |
+| `REDIS_URL` | Redis connection string (used when `CACHE_BACKEND=redis`). |
+| `SESSIONS_RATE_LIMIT` | Outbound Mojang session request limit. |
+| `REQUESTS_RATE_LIMIT` | Enable/disable inbound per-IP request limiting. |
+| `REQUESTS_RATE_LIMIT_WINDOW_MS` | Rate-limit window size in milliseconds. |
+| `REQUESTS_RATE_LIMIT_MAX_KEYS` | Maximum tracked rate-limit keys. |
+| `REQUESTS_RATE_LIMIT_TRUST_PROXY` | Proxy-trust behavior for client IP detection. |
+| `REQUESTS_RATE_LIMIT_EXCLUDE` | Comma-separated routes/patterns excluded from inbound limits. |
+| `MAX_TEXTURE_BYTES` | Maximum allowed texture payload size. |
+| `CORS_ORIGIN` | Empty/`All` allows all origins; otherwise use a comma-separated allowlist. |
+| `RETENTION_DAYS` / `RETENTION_MAX_AGE_HOURS` | Cache/data max age. |
+| `RETENTION_INTERVAL_HOURS` / `RETENTION_INTERVAL_DAYS` | Cleanup schedule interval. |
+| `PORT` | HTTP server port. |
+| `BIND` | Bind address/interface. |
+| `EXTERNAL_URL` | Public base URL used for generated external links. |
 
 ## Notes
 
