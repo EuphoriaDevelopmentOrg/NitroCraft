@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to build and publish (for example v1.2.3)"
+        description: "Release tag to publish (for example v1.2.3). Can be existing or new."
         required: true
         type: string
 
@@ -23,24 +23,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Resolve ref
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release target
         id: ref
         shell: bash
         run: |
           set -euo pipefail
+          git fetch --force --tags
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "ref=refs/tags/${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+            TAG="${{ inputs.tag }}"
+            if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+              git checkout --detach "refs/tags/${TAG}"
+            else
+              echo "::notice::Tag ${TAG} does not exist yet. Building current commit and creating tag via release."
+            fi
           else
-            echo "ref=${GITHUB_REF}" >> "$GITHUB_OUTPUT"
-            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            TAG="${GITHUB_REF_NAME}"
+            git checkout --detach "refs/tags/${TAG}"
           fi
 
-      - name: Checkout tag
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ steps.ref.outputs.ref }}
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -90,6 +98,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.ref.outputs.tag }}
+          target_commitish: ${{ steps.ref.outputs.commit }}
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: |
