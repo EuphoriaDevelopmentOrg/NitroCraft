@@ -13,7 +13,7 @@
     "Docker Hub NitroCraft": "docker.io/repgraphics/nitrocraft:latest"
   },
   "file_denylist": [],
-  "startup": "/bin/sh -lc 'set -e; PORT=\"{{SERVER_PORT}}\"; if [ -z \"${PORT}\" ] || [ \"${PORT}\" = \"{{SERVER_PORT}}\" ]; then PORT=\"${SERVER_PORT:-3000}\"; fi; export PORT; APP_DST=\"/home/container\"; if [ ! -f \"${APP_DST}/.output/server/index.mjs\" ]; then APP_DST=\"/home/app/nitrocraft\"; fi; if [ \"${APP_DST}\" = \"/home/container\" ] && [ ! -e \"/home/container/node_modules\" ] && [ -d \"/home/app/nitrocraft/node_modules\" ]; then ln -s /home/app/nitrocraft/node_modules /home/container/node_modules; fi; FACE_DIR=\"${FACE_DIR:-${APP_DST}/images/faces/}\"; HELM_DIR=\"${HELM_DIR:-${APP_DST}/images/helms/}\"; SKIN_DIR=\"${SKIN_DIR:-${APP_DST}/images/skins/}\"; RENDER_DIR=\"${RENDER_DIR:-${APP_DST}/images/renders/}\"; CAPE_DIR=\"${CAPE_DIR:-${APP_DST}/images/capes/}\"; export FACE_DIR HELM_DIR SKIN_DIR RENDER_DIR CAPE_DIR; mkdir -p \"${FACE_DIR}\" \"${HELM_DIR}\" \"${SKIN_DIR}\" \"${RENDER_DIR}\" \"${CAPE_DIR}\"; if [ \"${CACHE_BACKEND:-memory}\" = \"redis\" ] && [ -z \"${REDIS_URL:-}\" ]; then echo \"[WARN] CACHE_BACKEND=redis but REDIS_URL is empty; falling back to CACHE_BACKEND=memory.\"; CACHE_BACKEND=\"memory\"; export CACHE_BACKEND; fi; cd \"${APP_DST}\"; exec node \"${APP_DST}/.output/server/index.mjs\"'",
+  "startup": "/bin/sh -lc 'set -e; PORT=\"${PORT:-${SERVER_PORT:-3000}}\"; export PORT; APP_DST=\"/home/container\"; if [ ! -f \"${APP_DST}/.output/server/index.mjs\" ]; then APP_DST=\"/home/app/nitrocraft\"; fi; if [ \"${APP_DST}\" = \"/home/container\" ] && [ ! -e \"/home/container/node_modules\" ] && [ -d \"/home/app/nitrocraft/node_modules\" ]; then ln -s /home/app/nitrocraft/node_modules /home/container/node_modules; fi; FACE_DIR=\"${FACE_DIR:-${APP_DST}/images/faces/}\"; HELM_DIR=\"${HELM_DIR:-${APP_DST}/images/helms/}\"; SKIN_DIR=\"${SKIN_DIR:-${APP_DST}/images/skins/}\"; RENDER_DIR=\"${RENDER_DIR:-${APP_DST}/images/renders/}\"; CAPE_DIR=\"${CAPE_DIR:-${APP_DST}/images/capes/}\"; export FACE_DIR HELM_DIR SKIN_DIR RENDER_DIR CAPE_DIR; mkdir -p \"${FACE_DIR}\" \"${HELM_DIR}\" \"${SKIN_DIR}\" \"${RENDER_DIR}\" \"${CAPE_DIR}\"; if [ \"${CACHE_BACKEND:-memory}\" = \"redis\" ] && [ -z \"${REDIS_URL:-}\" ]; then echo \"[WARN] CACHE_BACKEND=redis but REDIS_URL is empty; falling back to CACHE_BACKEND=memory.\"; CACHE_BACKEND=\"memory\"; export CACHE_BACKEND; fi; cd \"${APP_DST}\"; exec node \"${APP_DST}/.output/server/index.mjs\"'",
   "config": {
     "files": "{}",
     "startup": "{\r\n  \"done\": \"Listening on http://\"\r\n}",
@@ -216,6 +216,16 @@
       "user_viewable": true,
       "user_editable": true,
       "rules": "nullable|string|max:255",
+      "field_type": "text"
+    },
+    {
+      "name": "PORT",
+      "description": "Application listen port. Leave empty to use the server primary allocation.",
+      "env_variable": "PORT",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|integer|min:1|max:65535",
       "field_type": "text"
     },
     {
