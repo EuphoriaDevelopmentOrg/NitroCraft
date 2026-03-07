@@ -26,5 +26,4 @@ replay_pid*
 .output
 .nitro
 .env
-pnpm-lock.yaml
 /node_modules
