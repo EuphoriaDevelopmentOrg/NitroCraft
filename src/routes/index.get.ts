@@ -25,6 +25,31 @@ export default defineEventHandler((event) => {
   const slugline = "Minecraft avatars, skins, and renders at Nitro speed.";
   const metaDescription =
     "Minecraft avatars, skins, capes, and renders at Nitro speed with UUID lookups and caching.";
+  const canonicalUrl = domain.endsWith("/") ? domain : `${domain}/`;
+  const safeCanonicalUrl = escapeHtml(canonicalUrl);
+  const schemaJson = JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        name: "NitroCraft",
+        url: canonicalUrl,
+        description: metaDescription,
+      },
+      {
+        "@type": "WebAPI",
+        name: "NitroCraft API",
+        url: canonicalUrl,
+        documentation: canonicalUrl,
+        serviceType: "Minecraft avatar and render API",
+        provider: {
+          "@type": "Organization",
+          name: "Euphoria Development",
+          url: canonicalUrl,
+        },
+      },
+    ],
+  }).replace(/</g, "\\u003c");
   const localMinutes = formatMinutes(config.caching.localSeconds);
   const browserMinutes = formatMinutes(config.caching.browserSeconds);
   const year = new Date().getFullYear();
@@ -43,23 +68,34 @@ export default defineEventHandler((event) => {
   <head>
     <title>NitroCraft - ${slugline}</title>
     <meta charset="utf-8">
-    <meta name="viewport" content="initial-scale=1, maximum-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="canonical" href="${safeCanonicalUrl}">
     <link rel="icon" type="image/x-icon" href="/NitroCraft.ico">
     <link rel="apple-touch-icon" href="/NitroCraft.png">
+    <link rel="manifest" href="/site.webmanifest">
     <link rel="stylesheet" href="/stylesheets/style.css">
-    <meta name="description" content="${slugline}">
+    <meta name="description" content="${metaDescription}">
     <meta name="keywords" content="minecraft, avatar, renders, skins, uuid, nitrocraft">
-    <meta name="robots" content="index">
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+    <meta name="application-name" content="NitroCraft">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="NitroCraft">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#050b16">
     <meta property="og:title" content="NitroCraft">
+    <meta property="og:site_name" content="NitroCraft">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="${safeDomain}">
+    <meta property="og:url" content="${safeCanonicalUrl}">
     <meta property="og:image" content="${safeDomain}/NitroCraft.png">
+    <meta property="og:image:alt" content="NitroCraft logo">
     <meta property="og:description" content="${metaDescription}">
     <meta property="og:locale" content="en_US">
-    <meta name="twitter:card" content="summary">
+    <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="NitroCraft">
     <meta name="twitter:description" content="${metaDescription}">
     <meta name="twitter:image" content="${safeDomain}/NitroCraft.png">
+    <meta name="twitter:image:alt" content="NitroCraft logo">
+    <script type="application/ld+json">${schemaJson}</script>
   </head>
   <body class="docs-page" lang="en-US">
     <a href="https://github.com/RepGraphics/NitroCraft" target="_blank" rel="noopener noreferrer" class="forkme">View on GitHub</a>

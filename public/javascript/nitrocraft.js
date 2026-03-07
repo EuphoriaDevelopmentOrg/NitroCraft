@@ -1,5 +1,11 @@
 var valid_user_id = /^[0-9a-f-A-F-]{32,36}$/; // uuid
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function() {
+    navigator.serviceWorker.register("/sw.js").catch(function() {});
+  });
+}
+
 fetch("/status/mc", { cache: "no-store" }).then(function(r) {
   return r.json();
 }).then(function(data) {
