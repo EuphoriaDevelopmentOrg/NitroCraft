@@ -29,6 +29,20 @@ const inflight = new Map<string, Promise<CacheDetails>>();
 const inflightRenders = new Map<string, Promise<Buffer>>();
 const inflightTextures = new Map<string, Promise<Buffer>>();
 
+function normalizeTextureUrl(input: string): URL {
+  const parsed = new URL(input);
+  const hostname = parsed.hostname.toLowerCase();
+
+  // Mojang can occasionally return http://textures.minecraft.net URLs.
+  // We keep host allowlisting strict and force these to HTTPS.
+  if (parsed.protocol === "http:" && ALLOWED_TEXTURE_HOSTS.has(hostname)) {
+    parsed.protocol = "https:";
+    parsed.port = "";
+  }
+
+  return parsed;
+}
+
 function toolkitStatusCode(err: unknown): number | undefined {
   if (!err || typeof err !== "object") {
     return undefined;
@@ -51,7 +65,8 @@ function isRateLimitedError(err: unknown): boolean {
 }
 
 async function fetchBuffer(url: string): Promise<Buffer | null> {
-  const parsed = new URL(url);
+  const parsed = normalizeTextureUrl(url);
+  const requestUrl = parsed.toString();
   const hostname = parsed.hostname.toLowerCase();
   if (parsed.protocol !== "https:" || !ALLOWED_TEXTURE_HOSTS.has(hostname)) {
     const err = new Error(`Blocked texture URL: ${url}`) as Error & { code?: string };
@@ -63,7 +78,7 @@ async function fetchBuffer(url: string): Promise<Buffer | null> {
   const timer = setTimeout(() => controller.abort(), config.server.httpTimeout);
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(requestUrl, {
       signal: controller.signal,
       headers: {
         "User-Agent": "NitroCraft (+https://github.com/RepGraphics/NitroCraft)",
@@ -75,7 +90,10 @@ async function fetchBuffer(url: string): Promise<Buffer | null> {
     }
 
     if (!response.ok) {
-      const err = new Error(`HTTP ${response.status} for ${url}`) as Error & { code?: string; statusCode?: number };
+      const err = new Error(`HTTP ${response.status} for ${requestUrl}`) as Error & {
+        code?: string;
+        statusCode?: number;
+      };
       err.code = "HTTPERROR";
       err.statusCode = response.status;
       throw err;
