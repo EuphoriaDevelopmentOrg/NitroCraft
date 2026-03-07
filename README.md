@@ -90,6 +90,34 @@ cp .env.example .env
 docker compose up -d
 ```
 
+## GitHub Actions (Docker Hub)
+
+This repo includes a Docker publish workflow at `.github/workflows/docker-publish.yml`.
+
+It runs on:
+- Push to `master`/`main`
+- Version tags like `v1.2.3`
+- Daily schedule (`03:00 UTC`)
+- Manual dispatch
+
+Add these repository secrets in GitHub:
+- `DOCKERHUB_USERNAME`
+- `DOCKERHUB_TOKEN` (Docker Hub access token)
+- `DOCKERHUB_REPOSITORY` (for example: `repgraphics/nitrocraft`)
+
+## GitHub Actions (Build Releases)
+
+This repo also includes `.github/workflows/build-release.yml`.
+
+It:
+- Runs `pnpm build`
+- Packages `.output` as a tarball
+- Publishes assets to the GitHub Release for the tag
+
+Triggers:
+- Push tags like `v1.2.3`
+- Manual dispatch (provide an existing tag)
+
 ## Environment
 
 Create a `.env` file and configure the following values.

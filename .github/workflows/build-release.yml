@@ -1,0 +1,97 @@
+name: Build Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and publish (for example v1.2.3)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve ref
+        id: ref
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "ref=refs/tags/${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${GITHUB_REF}" >> "$GITHUB_OUTPUT"
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.ref.outputs.ref }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.22.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f pnpm-lock.yaml ]; then
+            pnpm install --frozen-lockfile
+          else
+            pnpm install --no-frozen-lockfile
+          fi
+
+      - name: Build
+        run: pnpm build
+
+      - name: Package release assets
+        id: pkg
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.ref.outputs.tag }}"
+          STAGE="release-${TAG}"
+          mkdir -p "${STAGE}"
+          cp -r .output "${STAGE}/.output"
+          cp package.json "${STAGE}/package.json"
+          if [ -f README.md ]; then cp README.md "${STAGE}/README.md"; fi
+          if [ -f LICENSE ]; then cp LICENSE "${STAGE}/LICENSE"; fi
+          if [ -f DOCKERHUB_OVERVIEW.md ]; then cp DOCKERHUB_OVERVIEW.md "${STAGE}/DOCKERHUB_OVERVIEW.md"; fi
+          ARCHIVE="nitrocraft-${TAG}-node-server.tar.gz"
+          tar -czf "${ARCHIVE}" -C "${STAGE}" .
+          SHA="nitrocraft-${TAG}-node-server.sha256"
+          sha256sum "${ARCHIVE}" | awk '{print $1}' > "${SHA}"
+          echo "archive=${ARCHIVE}" >> "$GITHUB_OUTPUT"
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ref.outputs.tag }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            ${{ steps.pkg.outputs.archive }}
+            ${{ steps.pkg.outputs.sha }}
