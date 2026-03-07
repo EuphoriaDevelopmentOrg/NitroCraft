@@ -104,8 +104,22 @@ export default defineEventHandler((event) => {
           <a href="#skins">Skins</a>
           <a href="#capes">Capes</a>
           <a href="#toolkit">Toolkit</a>
+          <a href="#support">Support</a>
           <a href="#meta">Meta</a>
         </nav>
+
+        <div id="support" class="support-strip" aria-label="Support NitroCraft">
+          <span class="support-strip-label">Support NitroCraft:</span>
+          <a href="https://github.com/sponsors/RepGraphics" target="_blank" rel="noopener noreferrer">
+            <img src="https://img.shields.io/badge/GitHub%20Sponsors-Support-181717?logo=githubsponsors&logoColor=white" alt="Support via GitHub Sponsors" loading="lazy">
+          </a>
+          <a href="https://www.paypal.me/repgraphics" target="_blank" rel="noopener noreferrer">
+            <img src="https://img.shields.io/badge/PayPal-Donate-00457C?logo=paypal&logoColor=white" alt="Donate via PayPal" loading="lazy">
+          </a>
+          <a href="https://www.patreon.com/c/EuphoriaDevelopment" target="_blank" rel="noopener noreferrer">
+            <img src="https://img.shields.io/badge/Patreon-Become%20a%20Patron-F96854?logo=patreon&logoColor=white" alt="Support on Patreon" loading="lazy">
+          </a>
+        </div>
       </div>
     </div>
 

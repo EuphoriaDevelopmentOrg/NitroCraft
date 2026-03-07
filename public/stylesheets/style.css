@@ -420,6 +420,45 @@ code {
   color: #ffffff;
 }
 
+.support-strip {
+  margin-top: 0.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.42rem;
+}
+
+.support-strip-label {
+  color: var(--docs-muted);
+  font-size: 0.83rem;
+  margin-right: 0.12rem;
+}
+
+.support-strip a {
+  display: inline-flex;
+  line-height: 0;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(2, 6, 23, 0.4);
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+.support-strip a:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.support-strip img {
+  margin: 0;
+  border-radius: 999px;
+}
+
+@media (max-width: 700px) {
+  .support-strip-label {
+    width: 100%;
+    margin-bottom: 0.05rem;
+  }
+}
+
 #back-to-top {
   position: fixed;
   right: 1rem;

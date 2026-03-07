@@ -19,6 +19,7 @@ NitroCraft is a Minecraft avatar/render API built on Nitro and `minecraft-toolki
 - [Contributing](CONTRIBUTING.md)
 - [Docker Hub Overview](DOCKERHUB_OVERVIEW.md)
 - [Pterodactyl Egg](pterodactyl%20egg/egg-nitrocraft.json)
+- [Donations](#donations)
 - [License](LICENSE)
 
 ## Features
@@ -148,6 +149,18 @@ Create a `.env` file and configure the following values.
 
 - Render endpoints require native `canvas` dependencies in your runtime image/environment.
 - Core image endpoints use UUID input. `/players/{uuid-or-username}` resolves usernames.
+
+## Donations
+
+If NitroCraft helps your projects, you can support ongoing development here:
+
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-Support-181717?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/RepGraphics)
+[![PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.me/repgraphics)
+[![Patreon](https://img.shields.io/badge/Patreon-Become%20a%20Patron-F96854?style=for-the-badge&logo=patreon&logoColor=white)](https://www.patreon.com/c/EuphoriaDevelopment)
+
+- GitHub Sponsors: [github.com/sponsors/RepGraphics](https://github.com/sponsors/RepGraphics)
+- PayPal: [paypal.me/repgraphics](https://www.paypal.me/repgraphics)
+- Patreon: [patreon.com/c/EuphoriaDevelopment](https://www.patreon.com/c/EuphoriaDevelopment)
 
 ## Support
 
