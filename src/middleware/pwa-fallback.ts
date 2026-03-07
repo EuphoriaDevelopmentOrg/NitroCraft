@@ -9,6 +9,7 @@ const APP_SHELL = [
   "/site.webmanifest",
   "/stylesheets/style.css",
   "/javascript/nitrocraft.js",
+  "/NitroCraft-320.png",
   "/NitroCraft.ico",
   "/NitroCraft.png",
   "/icons/icon-192.png",
@@ -24,6 +25,7 @@ function isCacheableStaticAsset(url) {
     url.pathname.startsWith("/javascript/") ||
     url.pathname.startsWith("/images/") ||
     url.pathname.startsWith("/icons/") ||
+    url.pathname === "/NitroCraft-320.png" ||
     url.pathname === "/NitroCraft.ico" ||
     url.pathname === "/NitroCraft.png"
   );

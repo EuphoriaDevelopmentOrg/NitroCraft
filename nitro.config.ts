@@ -9,6 +9,7 @@ export default defineNitroConfig({
       // Resolved from srcDir, so use ../public for project-root static assets.
       dir: "../public",
       baseURL: "/",
+      maxAge: 60 * 60 * 24 * 365,
     },
   ],
   externals: {

@@ -70,6 +70,7 @@ export default defineEventHandler((event) => {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="canonical" href="${safeCanonicalUrl}">
+    <link rel="preload" as="image" href="/NitroCraft-320.png">
     <link rel="icon" type="image/x-icon" href="/NitroCraft.ico">
     <link rel="apple-touch-icon" href="/NitroCraft.png">
     <link rel="manifest" href="/site.webmanifest">
@@ -98,12 +99,13 @@ export default defineEventHandler((event) => {
     <script type="application/ld+json">${schemaJson}</script>
   </head>
   <body class="docs-page" lang="en-US">
+    <a class="skip-link" href="#content">Skip to content</a>
     <a href="https://github.com/RepGraphics/NitroCraft" target="_blank" rel="noopener noreferrer" class="forkme">View on GitHub</a>
 
     <div class="jumbotron">
       <div class="container">
         <div class="brand-lockup">
-          <img class="brand-logo" src="/NitroCraft.png" alt="NitroCraft Logo">
+          <img class="brand-logo" src="/NitroCraft-320.png" alt="NitroCraft Logo" width="320" height="320" loading="eager" fetchpriority="high">
           <div class="brand-copy">
             <h1>NitroCraft</h1>
             <h2>${slugline}</h2>
@@ -147,19 +149,19 @@ export default defineEventHandler((event) => {
         <div id="support" class="support-strip" aria-label="Support NitroCraft">
           <span class="support-strip-label">Support NitroCraft:</span>
           <a href="https://github.com/sponsors/RepGraphics" target="_blank" rel="noopener noreferrer">
-            <img src="https://img.shields.io/badge/GitHub%20Sponsors-Support-181717?logo=githubsponsors&logoColor=white" alt="Support via GitHub Sponsors" loading="lazy">
+            <img src="https://img.shields.io/badge/GitHub%20Sponsors-Support-181717?logo=githubsponsors&logoColor=white" alt="Support via GitHub Sponsors" width="173" height="20" loading="lazy" decoding="async">
           </a>
           <a href="https://www.paypal.me/repgraphics" target="_blank" rel="noopener noreferrer">
-            <img src="https://img.shields.io/badge/PayPal-Donate-00457C?logo=paypal&logoColor=white" alt="Donate via PayPal" loading="lazy">
+            <img src="https://img.shields.io/badge/PayPal-Donate-00457C?logo=paypal&logoColor=white" alt="Donate via PayPal" width="113" height="20" loading="lazy" decoding="async">
           </a>
           <a href="https://www.patreon.com/c/EuphoriaDevelopment" target="_blank" rel="noopener noreferrer">
-            <img src="https://img.shields.io/badge/Patreon-Become%20a%20Patron-F96854?logo=patreon&logoColor=white" alt="Support on Patreon" loading="lazy">
+            <img src="https://img.shields.io/badge/Patreon-Become%20a%20Patron-F96854?logo=patreon&logoColor=white" alt="Support on Patreon" width="173" height="20" loading="lazy" decoding="async">
           </a>
         </div>
       </div>
     </div>
 
-    <div class="container row docs-row">
+    <main id="content" class="container row docs-row">
       <div class="docs-main">
         <section id="documentation">
           <div id="alerts"></div>
@@ -183,7 +185,7 @@ export default defineEventHandler((event) => {
             <h2><a href="#avatars">Avatars</a></h2>
             <div class="row">
               <div class="col-md-2">
-                <img class="tryit" data-src="/avatars/$?size=100" src="/images/mhf_steve.png" alt="avatar" loading="lazy">
+                <img class="tryit" data-src="/avatars/$?size=100" src="/images/mhf_steve.png" alt="avatar" width="100" height="100" loading="lazy" decoding="async">
               </div>
               <div class="col-md-10">
                 <div class="code">${safeDomain}/avatars/<mark class="green">uuid</mark></div>
@@ -196,7 +198,7 @@ export default defineEventHandler((event) => {
             <h2><a href="#head-renders">Head Renders</a></h2>
             <div class="row">
               <div class="col-md-2">
-                <img class="tryit" data-src="/renders/head/$" src="/images/mhf_steve.png" alt="head" loading="lazy">
+                <img class="tryit" data-src="/renders/head/$" src="/images/mhf_steve.png" alt="head" width="120" height="111" loading="lazy" decoding="async">
               </div>
               <div class="col-md-10">
                 <div class="code">${safeDomain}/renders/head/<mark class="green">uuid</mark></div>
@@ -209,7 +211,7 @@ export default defineEventHandler((event) => {
             <h2><a href="#body-renders">Body Renders</a></h2>
             <div class="row">
               <div class="col-md-2">
-                <img class="tryit" data-src="/renders/body/$" src="/images/mhf_steve.png" alt="body" loading="lazy">
+                <img class="tryit" data-src="/renders/body/$" src="/images/mhf_steve.png" alt="body" width="120" height="270" loading="lazy" decoding="async">
               </div>
               <div class="col-md-10">
                 <div class="code">${safeDomain}/renders/body/<mark class="green">uuid</mark></div>
@@ -222,7 +224,7 @@ export default defineEventHandler((event) => {
             <h2><a href="#skins">Skins</a></h2>
             <div class="row">
               <div class="col-md-2">
-                <img class="tryit" data-src="/skins/$" src="/images/mhf_steve_skin.png" alt="skin" loading="lazy">
+                <img class="tryit" data-src="/skins/$" src="/images/mhf_steve_skin.png" alt="skin" width="64" height="64" loading="lazy" decoding="async">
               </div>
               <div class="col-md-10">
                 <div class="code">${safeDomain}/skins/<mark class="green">uuid</mark></div>
@@ -235,7 +237,7 @@ export default defineEventHandler((event) => {
             <h2><a href="#capes">Capes</a></h2>
             <div class="row">
               <div class="col-md-2">
-                <img class="tryit" data-src="/capes/$?default=853c80ef3c3749fdaa49938b674adae6" src="/images/mhf_alex_skin.png" alt="cape" loading="lazy">
+                <img class="tryit" data-src="/capes/$?default=853c80ef3c3749fdaa49938b674adae6" src="/images/mhf_alex_skin.png" alt="cape" width="64" height="64" loading="lazy" decoding="async">
               </div>
               <div class="col-md-10">
                 <div class="code">${safeDomain}/capes/<mark class="green">uuid</mark></div>
@@ -351,12 +353,12 @@ export default defineEventHandler((event) => {
           </section>
         </section>
       </div>
-    </div>
+    </main>
 
     <footer id="footer">
       <div class="container row">
         <p class="footer-meta">
-          NitroCraft is open source and available under MIT - ${year}
+          Copyright &copy; ${year} <a href="https://euphoriadevelopment.uk" target="_blank" rel="noopener noreferrer">Euphoria Development</a>. NitroCraft is open source and available under MIT.
         </p>
         <p class="footer-links">
           <span class="footer-link-list">

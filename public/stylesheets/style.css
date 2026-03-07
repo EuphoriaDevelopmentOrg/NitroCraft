@@ -76,6 +76,24 @@ a:hover {
   text-decoration: none;
 }
 
+.skip-link {
+  position: fixed;
+  left: 0.75rem;
+  top: 0.75rem;
+  z-index: 1300;
+  padding: 0.35rem 0.6rem;
+  border-radius: 9px;
+  border: 1px solid rgba(var(--docs-accent-rgb), 0.55);
+  background: rgba(8, 14, 27, 0.95);
+  color: #f8fbff;
+  transform: translateY(-180%);
+  transition: transform 120ms ease;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
 a.forkme {
   top: 0.9rem;
   right: 1rem;
@@ -182,6 +200,8 @@ a.forkme:hover {
 }
 
 img.tryit {
+  max-width: 100%;
+  height: auto;
   -webkit-filter: drop-shadow(0 0 12px rgba(2, 6, 23, 0.8));
   filter: drop-shadow(0 0 12px rgba(2, 6, 23, 0.8));
 }
