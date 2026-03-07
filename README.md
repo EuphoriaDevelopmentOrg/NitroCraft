@@ -1,5 +1,7 @@
 # NitroCraft
 
+> Minecraft avatars, skins, and renders at Nitro speed.
+
 NitroCraft is a Minecraft avatar/render API built on Nitro and `minecraft-toolkit`.
 
 <p align="center">

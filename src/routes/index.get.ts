@@ -22,6 +22,9 @@ function formatMinutes(seconds: number): string {
 export default defineEventHandler((event) => {
   const domain = getExternalBaseUrl(event);
   const safeDomain = escapeHtml(domain);
+  const slugline = "Minecraft avatars, skins, and renders at Nitro speed.";
+  const metaDescription =
+    "Minecraft avatars, skins, capes, and renders at Nitro speed with UUID lookups and caching.";
   const localMinutes = formatMinutes(config.caching.localSeconds);
   const browserMinutes = formatMinutes(config.caching.browserSeconds);
   const year = new Date().getFullYear();
@@ -38,24 +41,24 @@ export default defineEventHandler((event) => {
   const html = `<!doctype html>
 <html lang="en">
   <head>
-    <title>NitroCraft - A blazing fast API for Minecraft faces!</title>
+    <title>NitroCraft - ${slugline}</title>
     <meta charset="utf-8">
     <meta name="viewport" content="initial-scale=1, maximum-scale=1">
     <link rel="icon" type="image/x-icon" href="/NitroCraft.ico">
     <link rel="apple-touch-icon" href="/NitroCraft.png">
     <link rel="stylesheet" href="/stylesheets/style.css">
-    <meta name="description" content="A blazing fast API for Minecraft faces with support for avatars, skins, capes, and renders.">
+    <meta name="description" content="${slugline}">
     <meta name="keywords" content="minecraft, avatar, renders, skins, uuid, nitrocraft">
     <meta name="robots" content="index">
     <meta property="og:title" content="NitroCraft">
     <meta property="og:type" content="website">
     <meta property="og:url" content="${safeDomain}">
     <meta property="og:image" content="${safeDomain}/NitroCraft.png">
-    <meta property="og:description" content="A blazing fast API for Minecraft faces with support for avatars, skins, capes, and renders.">
+    <meta property="og:description" content="${metaDescription}">
     <meta property="og:locale" content="en_US">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="NitroCraft">
-    <meta name="twitter:description" content="A blazing fast API for Minecraft faces with support for avatars, skins, capes, and renders.">
+    <meta name="twitter:description" content="${metaDescription}">
     <meta name="twitter:image" content="${safeDomain}/NitroCraft.png">
   </head>
   <body class="docs-page" lang="en-US">
@@ -67,7 +70,7 @@ export default defineEventHandler((event) => {
           <img class="brand-logo" src="/NitroCraft.png" alt="NitroCraft Logo">
           <div class="brand-copy">
             <h1>NitroCraft</h1>
-            <h2>A blazing fast API for Minecraft faces!</h2>
+            <h2>${slugline}</h2>
           </div>
         </div>
 
