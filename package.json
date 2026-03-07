@@ -1,0 +1,49 @@
+{
+  "name": "nitrocraft",
+  "version": "1.0.0",
+  "private": false,
+  "type": "module",
+  "scripts": {
+    "dev": "nitro dev",
+    "build": "nitro build",
+    "preview": "nitro preview",
+    "start": "node .output/server/index.mjs",
+    "test": "tsx --test --test-concurrency=1 test/unit/config-utils.test.ts test/unit/routes-and-rate-limit.test.ts",
+    "loadtest": "tsx test/loadtest.ts",
+    "audit:security": "pnpm audit --audit-level=high --prod"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "canvas": "^3.2.1",
+    "crc": "^4.3.2",
+    "dotenv": "^16.6.1",
+    "minecraft-toolkit": "^0.1.4",
+    "nitropack": "^2.13.1",
+    "pngjs": "^7.0.0",
+    "redis": "^5.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.5",
+    "autocannon": "^8.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "minimatch": "^10.2.1",
+    "diff": "^8.0.2"
+  },
+  "packageManager": "pnpm@10.22.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "canvas",
+      "esbuild",
+      "@parcel/watcher"
+    ]
+  },
+  "volta": {
+    "node": "24.0.0",
+    "pnpm": "10.22.0"
+  }
+}

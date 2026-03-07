@@ -1,0 +1,405 @@
+{
+  "_comment": "DO NOT EDIT: FILE GENERATED FOR PTERODACTYL IMPORT",
+  "meta": {
+    "version": "PTDL_v2",
+    "update_url": null
+  },
+  "exported_at": "2026-02-24T01:20:00+00:00",
+  "name": "NitroCraft",
+  "author": "repgraphics@euphoriadevelopment.uk",
+  "description": "NitroCraft API server (Rep Graphics). Use external Redis (CACHE_BACKEND=redis + REDIS_URL) or memory cache.",
+  "features": null,
+  "docker_images": {
+    "Docker Hub NitroCraft": "docker.io/repgraphics/nitrocraft:latest"
+  },
+  "file_denylist": [],
+  "startup": "/bin/sh -lc 'set -e; PORT=\"{{SERVER_PORT}}\"; if [ -z \"${PORT}\" ] || [ \"${PORT}\" = \"{{SERVER_PORT}}\" ]; then PORT=\"${SERVER_PORT:-3000}\"; fi; export PORT; APP_DST=\"/home/container\"; if [ ! -f \"${APP_DST}/.output/server/index.mjs\" ]; then APP_DST=\"/home/app/nitrocraft\"; fi; if [ \"${APP_DST}\" = \"/home/container\" ] && [ ! -e \"/home/container/node_modules\" ] && [ -d \"/home/app/nitrocraft/node_modules\" ]; then ln -s /home/app/nitrocraft/node_modules /home/container/node_modules; fi; FACE_DIR=\"${FACE_DIR:-${APP_DST}/images/faces/}\"; HELM_DIR=\"${HELM_DIR:-${APP_DST}/images/helms/}\"; SKIN_DIR=\"${SKIN_DIR:-${APP_DST}/images/skins/}\"; RENDER_DIR=\"${RENDER_DIR:-${APP_DST}/images/renders/}\"; CAPE_DIR=\"${CAPE_DIR:-${APP_DST}/images/capes/}\"; export FACE_DIR HELM_DIR SKIN_DIR RENDER_DIR CAPE_DIR; mkdir -p \"${FACE_DIR}\" \"${HELM_DIR}\" \"${SKIN_DIR}\" \"${RENDER_DIR}\" \"${CAPE_DIR}\"; if [ \"${CACHE_BACKEND:-memory}\" = \"redis\" ] && [ -z \"${REDIS_URL:-}\" ]; then echo \"[WARN] CACHE_BACKEND=redis but REDIS_URL is empty; falling back to CACHE_BACKEND=memory.\"; CACHE_BACKEND=\"memory\"; export CACHE_BACKEND; fi; cd \"${APP_DST}\"; exec node \"${APP_DST}/.output/server/index.mjs\"'",
+  "config": {
+    "files": "{}",
+    "startup": "{\r\n  \"done\": \"Listening on http://\"\r\n}",
+    "logs": "{}",
+    "stop": "^^C"
+  },
+  "scripts": {
+    "installation": {
+      "script": "#!/bin/bash\nset -e\napt-get update\napt-get install -y --no-install-recommends ca-certificates curl tar\nrm -rf /var/lib/apt/lists/*\nSOURCE_REPO=\"${SOURCE_REPO:-RepGraphics/NitroCraft}\"\nSOURCE_REF=\"${SOURCE_REF:-master}\"\nif [ ! -f /mnt/server/.output/server/index.mjs ]; then\n  echo \"Downloading NitroCraft source from ${SOURCE_REPO}...\"\n  TMP_TAR=\"$(mktemp)\"\n  DOWNLOADED=0\n  for REF in \"${SOURCE_REF}\" master main; do\n    [ -n \"${REF}\" ] || continue\n    echo \"Trying source ref: ${REF}\"\n    if curl -fsSL \"https://codeload.github.com/${SOURCE_REPO}/tar.gz/refs/heads/${REF}\" -o \"${TMP_TAR}\" 2>/dev/null; then\n      tar -xzf \"${TMP_TAR}\" --strip-components=1 -C /mnt/server\n      DOWNLOADED=1\n      break\n    fi\n    if curl -fsSL \"https://codeload.github.com/${SOURCE_REPO}/tar.gz/refs/tags/${REF}\" -o \"${TMP_TAR}\" 2>/dev/null; then\n      tar -xzf \"${TMP_TAR}\" --strip-components=1 -C /mnt/server\n      DOWNLOADED=1\n      break\n    fi\n  done\n  rm -f \"${TMP_TAR}\"\n  if [ \"${DOWNLOADED}\" -ne 1 ]; then\n    echo \"Failed to download source from ${SOURCE_REPO}. Set SOURCE_REF to a valid branch/tag (e.g. master or v2.3.2).\" >&2\n    exit 1\n  fi\nfi\nmkdir -p /mnt/server/images/faces /mnt/server/images/helms /mnt/server/images/skins /mnt/server/images/renders /mnt/server/images/capes\nif [ ! -e /mnt/server/node_modules ]; then\n  ln -s /home/app/nitrocraft/node_modules /mnt/server/node_modules\nfi\necho \"NitroCraft egg install complete. Source is in /home/container.\"",
+      "container": "ghcr.io/ptero-eggs/installers:debian",
+      "entrypoint": "bash"
+    }
+  },
+  "variables": [
+    {
+      "name": "AVATAR_MIN",
+      "description": "Minimum avatar size in pixels.",
+      "env_variable": "AVATAR_MIN",
+      "default_value": "1",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:1|max:4096",
+      "field_type": "text"
+    },
+    {
+      "name": "AVATAR_MAX",
+      "description": "Maximum avatar size in pixels.",
+      "env_variable": "AVATAR_MAX",
+      "default_value": "512",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:1|max:4096",
+      "field_type": "text"
+    },
+    {
+      "name": "AVATAR_DEFAULT",
+      "description": "Default avatar size in pixels.",
+      "env_variable": "AVATAR_DEFAULT",
+      "default_value": "160",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:1|max:4096",
+      "field_type": "text"
+    },
+    {
+      "name": "RENDER_MIN",
+      "description": "Minimum 3D render scale.",
+      "env_variable": "RENDER_MIN",
+      "default_value": "1",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:1|max:64",
+      "field_type": "text"
+    },
+    {
+      "name": "RENDER_MAX",
+      "description": "Maximum 3D render scale.",
+      "env_variable": "RENDER_MAX",
+      "default_value": "10",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:1|max:64",
+      "field_type": "text"
+    },
+    {
+      "name": "RENDER_DEFAULT",
+      "description": "Default 3D render scale.",
+      "env_variable": "RENDER_DEFAULT",
+      "default_value": "6",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:1|max:64",
+      "field_type": "text"
+    },
+    {
+      "name": "CACHE_LOCAL",
+      "description": "Local cache freshness in seconds.",
+      "env_variable": "CACHE_LOCAL",
+      "default_value": "1200",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:0|max:31536000",
+      "field_type": "text"
+    },
+    {
+      "name": "CACHE_BROWSER",
+      "description": "HTTP browser cache max-age in seconds.",
+      "env_variable": "CACHE_BROWSER",
+      "default_value": "3600",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:0|max:31536000",
+      "field_type": "text"
+    },
+    {
+      "name": "RETENTION_ENABLED",
+      "description": "Enable periodic cleanup of stale cache/files.",
+      "env_variable": "RETENTION_ENABLED",
+      "default_value": "true",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|in:true,false",
+      "field_type": "text"
+    },
+    {
+      "name": "RETENTION_DAYS",
+      "description": "Retention max age in days.",
+      "env_variable": "RETENTION_DAYS",
+      "default_value": "30",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:1|max:3650",
+      "field_type": "text"
+    },
+    {
+      "name": "RETENTION_MAX_AGE_HOURS",
+      "description": "Retention max age in hours (optional alternative to RETENTION_DAYS).",
+      "env_variable": "RETENTION_MAX_AGE_HOURS",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|integer|min:1|max:87600",
+      "field_type": "text"
+    },
+    {
+      "name": "RETENTION_INTERVAL_HOURS",
+      "description": "Cleanup interval in hours.",
+      "env_variable": "RETENTION_INTERVAL_HOURS",
+      "default_value": "24",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:1|max:720",
+      "field_type": "text"
+    },
+    {
+      "name": "RETENTION_INTERVAL_DAYS",
+      "description": "Cleanup interval in days (optional alternative to RETENTION_INTERVAL_HOURS).",
+      "env_variable": "RETENTION_INTERVAL_DAYS",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|integer|min:1|max:365",
+      "field_type": "text"
+    },
+    {
+      "name": "EPHEMERAL_STORAGE",
+      "description": "Flush Redis cache on startup (true/false).",
+      "env_variable": "EPHEMERAL_STORAGE",
+      "default_value": "false",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|in:true,false",
+      "field_type": "text"
+    },
+    {
+      "name": "CLOUDFLARE",
+      "description": "Enable Cloudflare hinting on homepage (true/false).",
+      "env_variable": "CLOUDFLARE",
+      "default_value": "false",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|in:true,false",
+      "field_type": "text"
+    },
+    {
+      "name": "DEBUG",
+      "description": "Enable debug behavior and extra error details.",
+      "env_variable": "DEBUG",
+      "default_value": "false",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|in:true,false",
+      "field_type": "text"
+    },
+    {
+      "name": "LOG_TIME",
+      "description": "Enable timestamped logs (true/false).",
+      "env_variable": "LOG_TIME",
+      "default_value": "true",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|in:true,false",
+      "field_type": "text"
+    },
+    {
+      "name": "CACHE_BACKEND",
+      "description": "Metadata cache backend (redis, memory, none).",
+      "env_variable": "CACHE_BACKEND",
+      "default_value": "memory",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|in:redis,memory,none",
+      "field_type": "text"
+    },
+    {
+      "name": "REDIS_URL",
+      "description": "Redis URL (redis:// or rediss://). Required when CACHE_BACKEND=redis.",
+      "env_variable": "REDIS_URL",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string|max:255",
+      "field_type": "text"
+    },
+    {
+      "name": "BIND",
+      "description": "Application bind address.",
+      "env_variable": "BIND",
+      "default_value": "0.0.0.0",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:64",
+      "field_type": "text"
+    },
+    {
+      "name": "EXTERNAL_URL",
+      "description": "Public base URL (optional).",
+      "env_variable": "EXTERNAL_URL",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string|max:255",
+      "field_type": "text"
+    },
+    {
+      "name": "EXTERNAL_HTTP_TIMEOUT",
+      "description": "Timeout for Mojang/external HTTP requests in ms.",
+      "env_variable": "EXTERNAL_HTTP_TIMEOUT",
+      "default_value": "2000",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:100|max:120000",
+      "field_type": "text"
+    },
+    {
+      "name": "MAX_TEXTURE_BYTES",
+      "description": "Maximum downloaded texture size in bytes.",
+      "env_variable": "MAX_TEXTURE_BYTES",
+      "default_value": "1048576",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:65536|max:8388608",
+      "field_type": "text"
+    },
+    {
+      "name": "CORS_ORIGIN",
+      "description": "CORS allowlist. Empty or All allows all; otherwise comma-separated origins.",
+      "env_variable": "CORS_ORIGIN",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string|max:255",
+      "field_type": "text"
+    },
+    {
+      "name": "SESSIONS_RATE_LIMIT",
+      "description": "Outgoing Mojang session requests per second (empty disables).",
+      "env_variable": "SESSIONS_RATE_LIMIT",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|integer|min:1|max:1000",
+      "field_type": "text"
+    },
+    {
+      "name": "REQUESTS_RATE_LIMIT",
+      "description": "Incoming requests per IP per window (empty disables).",
+      "env_variable": "REQUESTS_RATE_LIMIT",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|integer|min:1|max:100000",
+      "field_type": "text"
+    },
+    {
+      "name": "REQUESTS_RATE_LIMIT_WINDOW_MS",
+      "description": "Window duration (ms) for REQUESTS_RATE_LIMIT.",
+      "env_variable": "REQUESTS_RATE_LIMIT_WINDOW_MS",
+      "default_value": "1000",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:1|max:60000",
+      "field_type": "text"
+    },
+    {
+      "name": "REQUESTS_RATE_LIMIT_MAX_KEYS",
+      "description": "Maximum active in-memory IP buckets for request rate limiter.",
+      "env_variable": "REQUESTS_RATE_LIMIT_MAX_KEYS",
+      "default_value": "10000",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:100|max:1000000",
+      "field_type": "text"
+    },
+    {
+      "name": "REQUESTS_RATE_LIMIT_TRUST_PROXY",
+      "description": "Use x-forwarded-for/x-real-ip when rate limiting (true/false).",
+      "env_variable": "REQUESTS_RATE_LIMIT_TRUST_PROXY",
+      "default_value": "true",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|in:true,false",
+      "field_type": "text"
+    },
+    {
+      "name": "REQUESTS_RATE_LIMIT_EXCLUDE",
+      "description": "Comma-separated path prefixes excluded from inbound rate limiting.",
+      "env_variable": "REQUESTS_RATE_LIMIT_EXCLUDE",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string|max:255",
+      "field_type": "text"
+    },
+    {
+      "name": "SOURCE_REF",
+      "description": "Git branch or tag used to bootstrap /home/container (e.g. master or v2.3.2).",
+      "env_variable": "SOURCE_REF",
+      "default_value": "master",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:64",
+      "field_type": "text"
+    },
+    {
+      "name": "SOURCE_REPO",
+      "description": "GitHub repo path for source bootstrap (owner/repo).",
+      "env_variable": "SOURCE_REPO",
+      "default_value": "RepGraphics/NitroCraft",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:64",
+      "field_type": "text"
+    },
+    {
+      "name": "FACE_DIR",
+      "description": "Storage directory for avatar faces (must end with /).",
+      "env_variable": "FACE_DIR",
+      "default_value": "/home/container/images/faces/",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:255",
+      "field_type": "text"
+    },
+    {
+      "name": "HELM_DIR",
+      "description": "Storage directory for avatar helm overlays (must end with /).",
+      "env_variable": "HELM_DIR",
+      "default_value": "/home/container/images/helms/",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:255",
+      "field_type": "text"
+    },
+    {
+      "name": "SKIN_DIR",
+      "description": "Storage directory for skins (must end with /).",
+      "env_variable": "SKIN_DIR",
+      "default_value": "/home/container/images/skins/",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:255",
+      "field_type": "text"
+    },
+    {
+      "name": "RENDER_DIR",
+      "description": "Storage directory for renders (must end with /).",
+      "env_variable": "RENDER_DIR",
+      "default_value": "/home/container/images/renders/",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:255",
+      "field_type": "text"
+    },
+    {
+      "name": "CAPE_DIR",
+      "description": "Storage directory for capes (must end with /).",
+      "env_variable": "CAPE_DIR",
+      "default_value": "/home/container/images/capes/",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:255",
+      "field_type": "text"
+    }
+  ]
+}
+
+
+

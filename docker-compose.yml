@@ -1,0 +1,42 @@
+name: nitrocraft
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: nitrocraft-redis
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nitrocraft:
+    image: docker.io/repgraphics/nitrocraft:latest
+    container_name: nitrocraft
+    # To build from the local Dockerfile instead, uncomment:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: redis://redis:6379
+      CACHE_BACKEND: redis
+      BIND: 0.0.0.0
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - nitrocraft-images:/home/app/nitrocraft/images
+    restart: unless-stopped
+
+volumes:
+  nitrocraft-images:
+  redis-data:
