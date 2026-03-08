@@ -74,7 +74,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.TOKEN_GITHUB }}
+          password: ${{ github.token }}
 
       - name: Generate image metadata
         id: meta
@@ -87,6 +87,10 @@ jobs:
             type=raw,value=${{ steps.vars.outputs.version }}
             type=ref,event=tag
             type=sha,format=short
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.url=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
 
       - name: Build and push image package
         uses: docker/build-push-action@v6
@@ -100,3 +104,10 @@ jobs:
             RUN_TESTS=false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Show package location
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Package: ghcr.io/${{ steps.vars.outputs.owner }}/${{ steps.vars.outputs.image }}"
+          echo "Org packages page: https://github.com/orgs/${GITHUB_REPOSITORY_OWNER}/packages?repo_name=${GITHUB_REPOSITORY#*/}"

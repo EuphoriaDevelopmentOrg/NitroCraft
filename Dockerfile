@@ -52,6 +52,6 @@ COPY --chown=app:app --from=builder /home/app/nitrocraft/.output ./.output
 COPY --chown=app:app --from=builder /home/app/nitrocraft/package.json ./package.json
 
 VOLUME /home/app/nitrocraft/images
-ENV NODE_ENV production
+ENV NODE_ENV=production
 CMD ["node", ".output/server/index.mjs"]
 EXPOSE 3000
