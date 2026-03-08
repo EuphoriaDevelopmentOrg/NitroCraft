@@ -27,3 +27,4 @@ replay_pid*
 .nitro
 .env
 /node_modules
+/data

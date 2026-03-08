@@ -3,6 +3,7 @@ import { extractTextureHash, resolvePlayer } from "minecraft-toolkit";
 import { config } from "../config";
 import { cache, type CacheDetails } from "./cache";
 import { extractFace, extractHelm, openImage, resizeImage, saveImage } from "./images";
+import { metrics } from "./metrics";
 import { capePath, exists, facePath, helmPath, renderPath, skinPath } from "../utils/paths";
 import { createSessionRateLimitError, tryConsumeSessionRequest } from "../utils/session-rate-limit";
 
@@ -501,6 +502,8 @@ export async function getRender(
   body: boolean,
 ): Promise<BinaryResult> {
   const { drawModel, openRender } = await import("./renders");
+  const renderType = body ? "body" : "head";
+  const startedAt = Date.now();
   const skin = await getSkin(userId);
   if (!skin.hash || !skin.buffer) {
     return {
@@ -513,12 +516,17 @@ export async function getRender(
   }
 
   const file = renderPath(skin.hash, scale, overlay, body, skin.slim);
+  let source: "cache" | "generated" | "stale" = "generated";
   try {
     if (await exists(file)) {
+      source = "cache";
+      const cachedRender = await openRender(file);
+      metrics.recordRender(renderType, source, "success");
+      metrics.recordRenderDuration(renderType, source, "success", Date.now() - startedAt);
       return {
         status: 1,
         hash: skin.hash,
-        buffer: await openRender(file),
+        buffer: cachedRender,
         slim: skin.slim,
         err: skin.err,
       };
@@ -526,7 +534,10 @@ export async function getRender(
 
     const existingRender = inflightRenders.get(file);
     if (existingRender) {
+      source = "cache";
       const rendered = await existingRender;
+      metrics.recordRender(renderType, source, "success");
+      metrics.recordRenderDuration(renderType, source, "success", Date.now() - startedAt);
       return {
         status: skin.status,
         hash: skin.hash,
@@ -555,6 +566,8 @@ export async function getRender(
       }
     });
     const rendered = await renderPromise;
+    metrics.recordRender(renderType, source, "success");
+    metrics.recordRenderDuration(renderType, source, "success", Date.now() - startedAt);
 
     return {
       status: skin.status,
@@ -564,6 +577,8 @@ export async function getRender(
       err: skin.err,
     };
   } catch (err) {
+    metrics.recordRender(renderType, source, "error");
+    metrics.recordRenderDuration(renderType, source, "error", Date.now() - startedAt);
     return {
       status: -1,
       hash: skin.hash,

@@ -3,12 +3,14 @@ export default defineEventHandler((event) => {
 
   if (path === "/sw.js") {
     const script = `
-const CACHE_NAME = "nitrocraft-shell-v1";
+const CACHE_NAME = "nitrocraft-shell-v2";
 const APP_SHELL = [
   "/",
+  "/tools/server-list",
   "/site.webmanifest",
   "/stylesheets/style.css",
   "/javascript/nitrocraft.js",
+  "/javascript/server-list-builder.js",
   "/NitroCraft-320.png",
   "/NitroCraft.ico",
   "/NitroCraft.png",

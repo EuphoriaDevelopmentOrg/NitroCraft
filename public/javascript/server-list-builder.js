@@ -1,0 +1,504 @@
+(function() {
+  var defaults = {
+    serverName: "NitroCraft Network",
+    motdLine1: "\u00a7bNitroCraft \u00a77| \u00a7aFast API",
+    motdLine2: "\u00a77Avatars, skins, renders, status",
+    online: 24,
+    max: 250,
+    version: "1.21.x",
+    ping: 5,
+    icon: "/avatars/069a79f444e94726a5befca90e38aaf5?size=64&overlay"
+  };
+
+  var controls = {
+    serverName: document.querySelector("#slb-server-name"),
+    motdLine1: document.querySelector("#slb-motd-line1"),
+    motdLine2: document.querySelector("#slb-motd-line2"),
+    online: document.querySelector("#slb-online"),
+    max: document.querySelector("#slb-max"),
+    version: document.querySelector("#slb-version"),
+    ping: document.querySelector("#slb-ping"),
+    iconFile: document.querySelector("#slb-icon-file"),
+    iconUrl: document.querySelector("#slb-icon-url"),
+    importAddress: document.querySelector("#slb-import-address"),
+    importEdition: document.querySelector("#slb-import-edition"),
+    importPort: document.querySelector("#slb-import-port"),
+    importBtn: document.querySelector("#slb-import-btn"),
+    importStatus: document.querySelector("#slb-import-status"),
+    iconStatus: document.querySelector("#slb-icon-status"),
+    shareUrl: document.querySelector("#slb-share-url"),
+    copyShare: document.querySelector("#slb-copy-share"),
+    reset: document.querySelector("#slb-reset")
+  };
+
+  var preview = {
+    icon: document.querySelector("#slb-preview-java-icon"),
+    name: document.querySelector("#slb-preview-java-name"),
+    version: document.querySelector("#slb-preview-java-version"),
+    motdLine1: document.querySelector("#slb-preview-java-motd-line1"),
+    motdLine2: document.querySelector("#slb-preview-java-motd-line2"),
+    players: document.querySelector("#slb-preview-java-players"),
+    ping: document.querySelector("#slb-preview-java-ping")
+  };
+
+  if (!controls.serverName || !preview.icon) {
+    return;
+  }
+
+  var state = Object.assign({}, defaults);
+  var motdRenderTimer = null;
+  var motdRenderToken = 0;
+
+  function clampNumber(value, fallback, min, max) {
+    var parsed = Number.parseInt(String(value || ""), 10);
+    if (!Number.isFinite(parsed)) {
+      parsed = fallback;
+    }
+    if (min !== undefined && parsed < min) {
+      parsed = min;
+    }
+    if (max !== undefined && parsed > max) {
+      parsed = max;
+    }
+    return parsed;
+  }
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function setNote(element, message, isError) {
+    if (!element) {
+      return;
+    }
+    element.textContent = message || "";
+    element.classList.toggle("is-error", Boolean(isError && message));
+    element.classList.toggle("is-ok", Boolean(!isError && message));
+  }
+
+  function parseInitialParams() {
+    var params = new URLSearchParams(window.location.search);
+    if (params.has("n")) {
+      state.serverName = params.get("n") || defaults.serverName;
+    }
+    if (params.has("m1")) {
+      state.motdLine1 = params.get("m1") || "";
+    }
+    if (params.has("m2")) {
+      state.motdLine2 = params.get("m2") || "";
+    }
+    if (params.has("o")) {
+      state.online = clampNumber(params.get("o"), defaults.online, 0, 999999);
+    }
+    if (params.has("x")) {
+      state.max = clampNumber(params.get("x"), defaults.max, 1, 999999);
+    }
+    if (params.has("v")) {
+      state.version = params.get("v") || defaults.version;
+    }
+    if (params.has("p")) {
+      state.ping = clampNumber(params.get("p"), defaults.ping, 0, 5);
+    }
+    if (params.has("i")) {
+      state.icon = params.get("i") || defaults.icon;
+    }
+  }
+
+  function writeStateToControls() {
+    controls.serverName.value = state.serverName;
+    controls.motdLine1.value = state.motdLine1;
+    controls.motdLine2.value = state.motdLine2;
+    controls.online.value = String(state.online);
+    controls.max.value = String(state.max);
+    controls.version.value = state.version;
+    controls.ping.value = String(state.ping);
+    controls.iconUrl.value = state.icon;
+  }
+
+  function readStateFromControls() {
+    state.serverName = String(controls.serverName.value || "").slice(0, 64);
+    state.motdLine1 = String(controls.motdLine1.value || "").slice(0, 120);
+    state.motdLine2 = String(controls.motdLine2.value || "").slice(0, 120);
+    state.online = clampNumber(controls.online.value, defaults.online, 0, 999999);
+    state.max = clampNumber(controls.max.value, defaults.max, 1, 999999);
+    state.version = String(controls.version.value || "").slice(0, 32);
+    state.ping = clampNumber(controls.ping.value, defaults.ping, 0, 5);
+    state.icon = String(controls.iconUrl.value || "").trim() || defaults.icon;
+  }
+
+  function updatePingBars(target, level) {
+    if (!target) {
+      return;
+    }
+    var bars = target.querySelectorAll("span");
+    for (var i = 0; i < bars.length; i++) {
+      bars[i].classList.toggle("is-on", i < level);
+    }
+    target.setAttribute("aria-label", level + " ping bars");
+    target.setAttribute("data-bars", String(level));
+  }
+
+  function fetchMotdHtml(text) {
+    return fetch("/format/html?text=" + encodeURIComponent(text), {
+      cache: "no-store"
+    }).then(function(response) {
+      if (!response.ok) {
+        throw new Error("format error");
+      }
+      return response.json();
+    }).then(function(payload) {
+      if (payload && typeof payload.html === "string") {
+        return payload.html;
+      }
+      return escapeHtml(text);
+    });
+  }
+
+  function renderMotd() {
+    var token = ++motdRenderToken;
+    Promise.all([
+      fetchMotdHtml(state.motdLine1),
+      fetchMotdHtml(state.motdLine2)
+    ]).then(function(parts) {
+      if (token !== motdRenderToken) {
+        return;
+      }
+      preview.motdLine1.innerHTML = parts[0] || "&nbsp;";
+      preview.motdLine2.innerHTML = parts[1] || "&nbsp;";
+    }).catch(function() {
+      if (token !== motdRenderToken) {
+        return;
+      }
+      preview.motdLine1.textContent = state.motdLine1 || "";
+      preview.motdLine2.textContent = state.motdLine2 || "";
+    });
+  }
+
+  function scheduleMotdRender() {
+    if (motdRenderTimer) {
+      window.clearTimeout(motdRenderTimer);
+    }
+    motdRenderTimer = window.setTimeout(renderMotd, 100);
+  }
+
+  function updateShareUrl() {
+    var params = new URLSearchParams();
+    params.set("n", state.serverName);
+    params.set("m1", state.motdLine1);
+    params.set("m2", state.motdLine2);
+    params.set("o", String(state.online));
+    params.set("x", String(state.max));
+    params.set("v", state.version);
+    params.set("p", String(state.ping));
+
+    var includeIcon = state.icon && state.icon !== defaults.icon && state.icon.length <= 3500;
+    if (includeIcon) {
+      params.set("i", state.icon);
+      setNote(controls.iconStatus, "", false);
+    } else if (state.icon && state.icon.length > 3500) {
+      setNote(controls.iconStatus, "Share URL skipped icon because it is too large.", true);
+    }
+
+    var relative = window.location.pathname + "?" + params.toString();
+    var absolute = window.location.origin + relative;
+    controls.shareUrl.value = absolute;
+    history.replaceState(null, "", relative);
+  }
+
+  function updatePreview() {
+    var fallbackName = state.serverName || "Minecraft Server";
+    var players = state.online + "/" + state.max;
+
+    preview.name.textContent = fallbackName;
+    preview.version.textContent = state.version ? ("v" + state.version) : "";
+    preview.players.textContent = players;
+    preview.icon.src = state.icon || defaults.icon;
+    updatePingBars(preview.ping, state.ping);
+
+    scheduleMotdRender();
+    updateShareUrl();
+  }
+
+  function fileToDataUrl(file) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function() {
+        resolve(String(reader.result || ""));
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function loadImage(src) {
+    return new Promise(function(resolve, reject) {
+      var img = new Image();
+      img.onload = function() {
+        resolve(img);
+      };
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  function normalizeIconToDataUrl(source) {
+    return loadImage(source).then(function(img) {
+      var canvas = document.createElement("canvas");
+      canvas.width = 64;
+      canvas.height = 64;
+      var context = canvas.getContext("2d");
+      if (!context) {
+        throw new Error("No canvas context");
+      }
+      context.imageSmoothingEnabled = false;
+      context.clearRect(0, 0, 64, 64);
+      context.drawImage(img, 0, 0, 64, 64);
+      return canvas.toDataURL("image/png");
+    });
+  }
+
+  function readImportPayload(statusPayload, address) {
+    var motd = "";
+    var versionName = "";
+    var online = state.online;
+    var max = state.max;
+    var favicon = "";
+
+    if (statusPayload && typeof statusPayload.motd === "string") {
+      motd = statusPayload.motd;
+    }
+    if (statusPayload && statusPayload.version && typeof statusPayload.version.name === "string") {
+      versionName = statusPayload.version.name;
+    }
+    if (statusPayload && statusPayload.players) {
+      if (Number.isFinite(statusPayload.players.online)) {
+        online = clampNumber(statusPayload.players.online, online, 0, 999999);
+      }
+      if (Number.isFinite(statusPayload.players.max)) {
+        max = clampNumber(statusPayload.players.max, max, 1, 999999);
+      }
+    }
+    if (statusPayload && typeof statusPayload.favicon === "string" && statusPayload.favicon.startsWith("data:image/")) {
+      favicon = statusPayload.favicon;
+    }
+
+    var motdLines = String(motd || "").replaceAll("\r", "").split("\n");
+    var line1 = motdLines[0] || "";
+    var line2 = motdLines.slice(1).join(" ").trim();
+
+    if (!line2 && line1.includes(" | ")) {
+      var split = line1.split(" | ");
+      line1 = split[0] || line1;
+      line2 = split.slice(1).join(" | ");
+    }
+
+    return {
+      serverName: String(address || state.serverName).trim() || state.serverName,
+      motdLine1: line1 || state.motdLine1,
+      motdLine2: line2 || state.motdLine2,
+      online: online,
+      max: max,
+      version: versionName || state.version,
+      icon: favicon
+    };
+  }
+
+  function parseErrorMessage(response, payload, fallback) {
+    if (payload && typeof payload.error === "string" && payload.error.trim()) {
+      return payload.error;
+    }
+    if (response && response.status) {
+      return fallback + " (HTTP " + response.status + ")";
+    }
+    return fallback;
+  }
+
+  function importFromServer() {
+    var address = String(controls.importAddress.value || "").trim();
+    if (!address) {
+      setNote(controls.importStatus, "Enter a server address first.", true);
+      controls.importAddress.focus();
+      return;
+    }
+
+    var edition = String(controls.importEdition.value || "auto");
+    var port = String(controls.importPort.value || "").trim();
+    var query = new URLSearchParams();
+    query.set("address", address);
+    query.set("edition", edition);
+    if (port) {
+      query.set("port", port);
+    }
+
+    controls.importBtn.disabled = true;
+    controls.importBtn.textContent = "Importing...";
+    setNote(controls.importStatus, "", false);
+
+    fetch("/status/server?" + query.toString(), { cache: "no-store" })
+      .then(function(response) {
+        return response.json().then(function(payload) {
+          if (!response.ok) {
+            throw new Error(parseErrorMessage(response, payload, "Failed to import server status."));
+          }
+          return payload;
+        });
+      })
+      .then(function(payload) {
+        var imported = readImportPayload(payload, address);
+        controls.serverName.value = imported.serverName;
+        controls.motdLine1.value = imported.motdLine1;
+        controls.motdLine2.value = imported.motdLine2;
+        controls.online.value = String(imported.online);
+        controls.max.value = String(imported.max);
+        controls.version.value = imported.version;
+
+        if (imported.icon) {
+          controls.iconUrl.value = imported.icon;
+        }
+
+        var edition = String((payload && payload.edition) || controls.importEdition.value || "auto").toLowerCase();
+        var shouldFetchIcon = !imported.icon && edition !== "bedrock";
+
+        if (!shouldFetchIcon) {
+          readStateFromControls();
+          updatePreview();
+          setNote(controls.importStatus, "Imported " + address + " successfully.", false);
+          return;
+        }
+
+        var iconQuery = new URLSearchParams();
+        iconQuery.set("address", address);
+        if (port) {
+          iconQuery.set("port", port);
+        }
+
+        return fetch("/status/icon?" + iconQuery.toString(), { cache: "no-store" })
+          .then(function(iconResponse) {
+            if (!iconResponse.ok) {
+              return null;
+            }
+            return iconResponse.json();
+          })
+          .then(function(iconPayload) {
+            if (iconPayload && typeof iconPayload.dataUri === "string") {
+              controls.iconUrl.value = iconPayload.dataUri;
+            }
+          })
+          .catch(function() {
+            return null;
+          })
+          .then(function() {
+            readStateFromControls();
+            updatePreview();
+            setNote(controls.importStatus, "Imported " + address + " successfully.", false);
+          });
+      })
+      .catch(function(err) {
+        setNote(controls.importStatus, err && err.message ? err.message : "Failed to import server status.", true);
+      })
+      .then(function() {
+        controls.importBtn.disabled = false;
+        controls.importBtn.textContent = "Import Status";
+      });
+  }
+
+  function copyShareUrl() {
+    var value = controls.shareUrl.value;
+    if (!value) {
+      return;
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(value).then(function() {
+        setNote(controls.importStatus, "Share URL copied.", false);
+      }).catch(function() {
+        setNote(controls.importStatus, "Could not copy share URL.", true);
+      });
+      return;
+    }
+
+    controls.shareUrl.select();
+    try {
+      var copied = document.execCommand("copy");
+      setNote(controls.importStatus, copied ? "Share URL copied." : "Could not copy share URL.", !copied);
+    } catch {
+      setNote(controls.importStatus, "Could not copy share URL.", true);
+    }
+  }
+
+  function resetBuilder() {
+    state = Object.assign({}, defaults);
+    writeStateToControls();
+    readStateFromControls();
+    setNote(controls.importStatus, "", false);
+    setNote(controls.iconStatus, "", false);
+    history.replaceState(null, "", window.location.pathname);
+    updatePreview();
+  }
+
+  controls.serverName.addEventListener("input", function() {
+    readStateFromControls();
+    updatePreview();
+  });
+  controls.motdLine1.addEventListener("input", function() {
+    readStateFromControls();
+    updatePreview();
+  });
+  controls.motdLine2.addEventListener("input", function() {
+    readStateFromControls();
+    updatePreview();
+  });
+  controls.online.addEventListener("input", function() {
+    readStateFromControls();
+    updatePreview();
+  });
+  controls.max.addEventListener("input", function() {
+    readStateFromControls();
+    updatePreview();
+  });
+  controls.version.addEventListener("input", function() {
+    readStateFromControls();
+    updatePreview();
+  });
+  controls.ping.addEventListener("change", function() {
+    readStateFromControls();
+    updatePreview();
+  });
+  controls.iconUrl.addEventListener("input", function() {
+    readStateFromControls();
+    updatePreview();
+  });
+
+  controls.iconFile.addEventListener("change", function() {
+    var file = controls.iconFile.files && controls.iconFile.files[0];
+    if (!file) {
+      return;
+    }
+
+    fileToDataUrl(file)
+      .then(normalizeIconToDataUrl)
+      .then(function(dataUrl) {
+        controls.iconUrl.value = dataUrl;
+        readStateFromControls();
+        updatePreview();
+        setNote(controls.iconStatus, "Icon loaded and resized to 64x64 PNG.", false);
+      })
+      .catch(function() {
+        setNote(controls.iconStatus, "Could not load this icon file.", true);
+      });
+  });
+
+  controls.importBtn.addEventListener("click", importFromServer);
+  controls.copyShare.addEventListener("click", copyShareUrl);
+  controls.reset.addEventListener("click", resetBuilder);
+
+  parseInitialParams();
+  writeStateToControls();
+  readStateFromControls();
+  updatePreview();
+})();

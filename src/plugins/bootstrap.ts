@@ -1,5 +1,6 @@
 import { defineNitroPlugin } from "nitropack/runtime";
 import { config } from "../config";
+import { apiCallCounter } from "../services/api-call-counter";
 import { cache } from "../services/cache";
 import { startRetention, stopRetention } from "../services/retention";
 import { ensureImageDirectories } from "../utils/paths";
@@ -35,6 +36,7 @@ export default defineNitroPlugin(async (nitroApp) => {
 
   await ensureImageDirectories();
   await cache.init();
+  await apiCallCounter.init();
   startRetention();
 
   nitroApp.hooks.hook("request", (event) => {
@@ -49,6 +51,7 @@ export default defineNitroPlugin(async (nitroApp) => {
   nitroApp.hooks.hook("close", async () => {
     stopRetention();
     try {
+      await apiCallCounter.close();
       await cache.close();
       log("cache closed");
     } catch (err) {

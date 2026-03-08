@@ -1,5 +1,6 @@
 import { fetchBedrockServerStatus } from "minecraft-toolkit";
 import { config } from "../../config";
+import { statusProbeCacheKey, withStatusProbeCache } from "../../services/status-probe-cache";
 import { getQueryParams } from "../../utils/query";
 import { validateServerProbeAddress } from "../../utils/network-safety";
 import {
@@ -32,10 +33,15 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const payload = await fetchBedrockServerStatus(address, {
-      port,
-      timeoutMs: timeoutMs ?? config.server.httpTimeout,
-    });
+    const resolvedTimeoutMs = timeoutMs ?? config.server.httpTimeout;
+    const payload = await withStatusProbeCache(
+      "bedrock",
+      statusProbeCacheKey("bedrock", [address, port, resolvedTimeoutMs]),
+      () => fetchBedrockServerStatus(address, {
+        port,
+        timeoutMs: resolvedTimeoutMs,
+      }),
+    );
     return jsonResponse(event, payload);
   } catch (err) {
     return jsonToolkitError(event, err, "Failed to probe Bedrock server status.");

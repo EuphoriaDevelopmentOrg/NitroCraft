@@ -1,4 +1,5 @@
 import { config } from "../config";
+import { metrics } from "../services/metrics";
 import { getExternalBaseUrl } from "../utils/request";
 import { respond } from "../utils/response";
 
@@ -19,6 +20,40 @@ function formatMinutes(seconds: number): string {
   return minutes.toFixed(2).replace(/\.?0+$/, "");
 }
 
+function sanitizeHttpUrl(value: string): string | null {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) {
+    return null;
+  }
+
+  try {
+    const parsedUrl = new URL(trimmedValue);
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      return null;
+    }
+    return parsedUrl.toString();
+  } catch {
+    return null;
+  }
+}
+
+function sanitizeSponsorImageUrl(value: string, baseUrl: string): string | null {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) {
+    return null;
+  }
+
+  if (trimmedValue.startsWith("/") && !trimmedValue.startsWith("//")) {
+    try {
+      return new URL(trimmedValue, baseUrl).toString();
+    } catch {
+      return null;
+    }
+  }
+
+  return sanitizeHttpUrl(trimmedValue);
+}
+
 export default defineEventHandler((event) => {
   const domain = getExternalBaseUrl(event);
   const safeDomain = escapeHtml(domain);
@@ -28,6 +63,36 @@ export default defineEventHandler((event) => {
     "Minecraft avatars, skins, capes, and renders at Nitro speed with UUID lookups and caching.";
   const canonicalUrl = domain.endsWith("/") ? domain : `${domain}/`;
   const safeCanonicalUrl = escapeHtml(canonicalUrl);
+  const sponsorCandidates = config.sponsors.cards.length
+    ? config.sponsors.cards
+    : [{
+      url: config.sponsors.cardUrl,
+      image: config.sponsors.cardImage,
+      alt: config.sponsors.cardAlt,
+    }];
+  const sponsorCardsHtml = sponsorCandidates
+    .map((card) => {
+      const sponsorCardUrl = sanitizeHttpUrl(card.url);
+      const sponsorCardImage = sanitizeSponsorImageUrl(card.image, canonicalUrl);
+      const sponsorCardAlt = escapeHtml(String(card.alt || "Sponsor").trim() || "Sponsor");
+      if (!sponsorCardUrl || !sponsorCardImage) {
+        return "";
+      }
+
+      return `<a class="sponsor-card" href="${escapeHtml(sponsorCardUrl)}" target="_blank" rel="noopener noreferrer sponsored">
+        <img src="${escapeHtml(sponsorCardImage)}" alt="${sponsorCardAlt}" loading="lazy" decoding="async">
+      </a>`;
+    })
+    .filter(Boolean)
+    .join("");
+  const sponsorSectionHtml = sponsorCardsHtml
+    ? `
+    <section class="sponsor-strip" aria-label="Sponsors">
+      <div class="sponsor-card-list">
+        ${sponsorCardsHtml}
+      </div>
+    </section>`
+    : "";
   const schemaJson = JSON.stringify({
     "@context": "https://schema.org",
     "@graph": [
@@ -53,6 +118,8 @@ export default defineEventHandler((event) => {
   }).replace(/</g, "\\u003c");
   const localMinutes = formatMinutes(config.caching.localSeconds);
   const browserMinutes = formatMinutes(config.caching.browserSeconds);
+  const apiCallCount = metrics.getApiCallCount();
+  const formattedApiCallCount = new Intl.NumberFormat("en-US").format(apiCallCount);
   const year = new Date().getFullYear();
   const cloudflareCachingNote = config.caching.cloudflare
     ? '<br>In addition, <span title="A CDN and caching proxy">Cloudflare</span> may cache images as long as your browser would.'
@@ -105,16 +172,28 @@ export default defineEventHandler((event) => {
 
     <div class="jumbotron">
       <div class="container">
-        <div class="brand-lockup">
-          <img class="brand-logo" src="/NitroCraft-320.png" alt="NitroCraft Logo" width="320" height="320" loading="eager" fetchpriority="high">
-          <div class="brand-copy">
-            <h1>NitroCraft</h1>
-            <h2>${slugline}</h2>
+        <div class="brand-header">
+          <div class="brand-lockup">
+            <img class="brand-logo" src="/NitroCraft-320.png" alt="NitroCraft Logo" width="320" height="320" loading="eager" fetchpriority="high">
+            <div class="brand-copy">
+              <h1>NitroCraft</h1>
+              <h2>${slugline}</h2>
+            </div>
+          </div>
+
+          <div class="site-stats" aria-label="NitroCraft usage statistics">
+            <div class="site-stat">
+              <span class="site-stat-label">API calls served</span>
+              <strong id="api-call-count-value" class="site-stat-value">${formattedApiCallCount}</strong>
+              <span class="site-stat-meta"></span>
+            </div>
           </div>
         </div>
 
         <div id="avatar-wrapper" role="toolbar" aria-label="Choose a sample UUID">
           <button type="button" class="avatar-picker is-active" data-uuid="ae795aa86327408e92ab25c8a59f3ba1" title="jomo" aria-label="Use jomo UUID"><span class="avatar jomo"></span></button>
+          <button type="button" class="avatar-picker" data-pinned="true" data-uuid="d634462bd663401d9788a8596307bc4d" title="RepGraphics" aria-label="Use RepGraphics UUID"><span class="avatar repgraphics"></span></button>
+          <button type="button" class="avatar-picker" data-pinned="true" data-uuid="15851079f1d24d418207ce9f914e966d" title="26bz" aria-label="Use 26bz UUID"><span class="avatar u26bz"></span></button>
           <button type="button" class="avatar-picker" data-uuid="2d5aa9cdaeb049189930461fc9b91cc5" title="jake_0" aria-label="Use jake_0 UUID"><span class="avatar jake_0"></span></button>
           <button type="button" class="avatar-picker" data-uuid="0ea8eca3dbf647cc9d1ac64551ca975c" title="sk89q" aria-label="Use sk89q UUID"><span class="avatar sk89q"></span></button>
           <button type="button" class="avatar-picker" data-uuid="af74a02d19cb445bb07f6866a861f783" title="md_5" aria-label="Use md_5 UUID"><span class="avatar md_5"></span></button>
@@ -143,7 +222,7 @@ export default defineEventHandler((event) => {
           <a href="#skins">Skins</a>
           <a href="#capes">Capes</a>
           <a href="#toolkit">Toolkit</a>
-          <a href="#support">Support</a>
+          <a href="#sdk-snippet">SDK</a>
           <a href="#meta">Meta</a>
         </nav>
 
@@ -151,6 +230,8 @@ export default defineEventHandler((event) => {
           <a class="quick-link" data-template="${safeDomain}/avatars/$?size=128&amp;overlay" href="${safeDomain}/avatars/${featuredUuid}?size=128&amp;overlay" target="_blank" rel="noopener noreferrer">Open Avatar</a>
           <a class="quick-link" data-template="${safeDomain}/renders/head/$?scale=8&amp;overlay" href="${safeDomain}/renders/head/${featuredUuid}?scale=8&amp;overlay" target="_blank" rel="noopener noreferrer">Open Head Render</a>
           <a class="quick-link" data-template="${safeDomain}/players/$" href="${safeDomain}/players/${featuredUuid}" target="_blank" rel="noopener noreferrer">Open Player JSON</a>
+          <a class="quick-link" href="${safeDomain}/tools/server-list">Server List Builder</a>
+          <a class="quick-link" href="${safeDomain}/openapi.json">OpenAPI</a>
         </div>
 
         <div id="support" class="support-strip" aria-label="Support NitroCraft">
@@ -165,8 +246,11 @@ export default defineEventHandler((event) => {
             <img src="https://img.shields.io/badge/Patreon-Become%20a%20Patron-F96854?logo=patreon&logoColor=white" alt="Support on Patreon" width="173" height="20" loading="lazy" decoding="async">
           </a>
         </div>
+        <p class="support-tier-note">Support tiers: <strong>$5</strong> Supporter, <strong>$10</strong> Builder, and <strong>$20</strong> Sponsor Spotlight (includes homepage + <a href="https://github.com/EuphoriaDevelopmentOrg/NitroCraft#donations" target="_blank" rel="noopener noreferrer">README sponsor placement</a>).</p>
       </div>
     </div>
+
+    ${sponsorSectionHtml}
 
     <main id="content" class="container row docs-row">
       <div class="docs-main">
@@ -187,7 +271,6 @@ export default defineEventHandler((event) => {
               </div>
             </form>
             <p id="try-help" class="try-help">Enter a Mojang UUID or username, then press Enter to update all previews.</p>
-            <p>Try it accepts either a UUID or username. You can also use <a rel="nofollow noopener noreferrer" target="_blank" href="https://minecraftuuid.com">minecraftuuid.com</a> to look up UUIDs manually.</p>
           </section>
 
           <section id="avatars">
@@ -258,6 +341,7 @@ export default defineEventHandler((event) => {
           <section id="toolkit">
             <h2><a href="#toolkit">Toolkit Extras</a></h2>
             <p>Additional endpoints powered by <code>minecraft-toolkit</code>:</p>
+            <p>Credit to <a href="https://github.com/26bz" target="_blank" rel="noopener noreferrer">26bz</a> for creating <a href="https://github.com/26bz/minecraft-toolkit" target="_blank" rel="noopener noreferrer"><code>minecraft-toolkit</code></a>.</p>
             <ul>
               <li><code>${safeDomain}/players/{uuid-or-username}</code> - resolved player identity + textures</li>
               <li><code>${safeDomain}/players/{uuid-or-username}/profile</code> - Mojang profile payload</li>
@@ -270,7 +354,36 @@ export default defineEventHandler((event) => {
               <li><code>${safeDomain}/format/html?text=%C2%A7aWelcome%20%C2%A7lHero</code> - formatting to HTML</li>
               <li><code>${safeDomain}/format/strip?text=%C2%A7aWelcome%20%C2%A7lHero</code> - strip formatting codes</li>
               <li><code>${safeDomain}/format/css</code> - CSS classes for formatting mode</li>
+              <li><code>${safeDomain}/tools/server-list</code> - live Minecraft server-list entry simulator</li>
+              <li><code>${safeDomain}/openapi.json</code> - OpenAPI schema</li>
+              <li><code>${safeDomain}/metrics</code> - Prometheus metrics endpoint</li>
             </ul>
+          </section>
+
+          <section id="sdk-snippet">
+            <h2><a href="#sdk-snippet">SDK Snippet Generator</a></h2>
+            <p>Pick an endpoint and language to generate a starter request snippet. Full API metadata is available at <code>${safeDomain}/openapi.json</code>.</p>
+            <div class="sdk-controls">
+              <div>
+                <label for="sdk-endpoint">Endpoint</label>
+                <select id="sdk-endpoint">
+                  <option value="/avatars/{uuid}?size=160&overlay">Avatar</option>
+                  <option value="/renders/head/{uuid}?scale=6&overlay">Head render</option>
+                  <option value="/players/{uuid-or-username}">Player resolve</option>
+                  <option value="/status/server?address=mc.hypixel.net&edition=auto">Status probe</option>
+                  <option value="/format/html?text=%C2%A7aWelcome%20%C2%A7lHero">Formatting HTML</option>
+                </select>
+              </div>
+              <div>
+                <label for="sdk-language">Language</label>
+                <select id="sdk-language">
+                  <option value="curl">cURL</option>
+                  <option value="javascript">JavaScript (fetch)</option>
+                  <option value="python">Python (requests)</option>
+                </select>
+              </div>
+            </div>
+            <div id="sdk-snippet-code" class="code">${safeDomain}/avatars/${featuredUuid}?size=160&amp;overlay</div>
           </section>
 
           <hr>
@@ -374,6 +487,8 @@ export default defineEventHandler((event) => {
             <a href="https://github.com/EuphoriaDevelopmentOrg/NitroCraft" target="_blank" rel="noopener noreferrer">GitHub</a>
             <a href="${safeDomain}/status/mc">Service Status</a>
             <a href="${safeDomain}/renders/head/853c80ef3c3749fdaa49938b674adae6?scale=6&amp;overlay">Live Example</a>
+            <a href="${safeDomain}/tools/server-list">Server List Builder</a>
+            <a href="${safeDomain}/openapi.json">OpenAPI</a>
           </span>
         </p>
       </div>

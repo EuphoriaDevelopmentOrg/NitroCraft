@@ -32,12 +32,222 @@ fetch("/status/mc", { cache: "no-store" }).then(function(r) {
 document.addEventListener("DOMContentLoaded", function(event) {
   var avatars = document.querySelector("#avatar-wrapper");
   var avatarPickers = [];
+  var pinnedAvatarPickers = [];
+  var visibleAvatarPickers = [];
+  var avatarPickerStep = 70;
   var backToTop = document.querySelector("#back-to-top");
   var backToTopThreshold = 420;
   var pickerTooltip = null;
   var activeTooltipTarget = null;
   var quickLinks = document.querySelectorAll(".quick-link[data-template]");
   var codeBlocks = document.querySelectorAll("#documentation .code");
+  var sdkEndpoint = document.querySelector("#sdk-endpoint");
+  var sdkLanguage = document.querySelector("#sdk-language");
+  var sdkSnippetCode = document.querySelector("#sdk-snippet-code");
+  var apiCallCountValue = document.querySelector("#api-call-count-value");
+  var apiCallPollTimer = null;
+  var apiCallFetchInFlight = false;
+  var apiCallPollIntervalMs = 5000;
+  var numberFormatter = null;
+  var sampleUuid = "069a79f444e94726a5befca90e38aaf5";
+  var samplePlayer = "Notch";
+
+  if (typeof Intl !== "undefined" && Intl.NumberFormat) {
+    numberFormatter = new Intl.NumberFormat("en-US");
+  }
+
+  function formatCount(value) {
+    if (!Number.isFinite(value)) {
+      return null;
+    }
+    if (numberFormatter) {
+      return numberFormatter.format(value);
+    }
+    return String(Math.trunc(value));
+  }
+
+  function setApiCallCountValue(value) {
+    if (!apiCallCountValue) {
+      return;
+    }
+    var formatted = formatCount(value);
+    if (!formatted) {
+      return;
+    }
+    apiCallCountValue.textContent = formatted;
+  }
+
+  function fetchApiCallCount() {
+    if (!apiCallCountValue || apiCallFetchInFlight) {
+      return;
+    }
+
+    apiCallFetchInFlight = true;
+    fetch("/metrics/api-calls", {
+      cache: "no-store",
+      headers: {
+        Accept: "application/json"
+      }
+    }).then(function(response) {
+      if (!response.ok) {
+        throw new Error("api call count request failed");
+      }
+      return response.json();
+    }).then(function(payload) {
+      var value = Number(payload && payload.apiCalls);
+      if (Number.isFinite(value)) {
+        setApiCallCountValue(value);
+      }
+    }).catch(function() {}).then(function() {
+      apiCallFetchInFlight = false;
+    });
+  }
+
+  function startApiCallPolling() {
+    if (!apiCallCountValue || apiCallPollTimer) {
+      return;
+    }
+    fetchApiCallCount();
+    apiCallPollTimer = window.setInterval(fetchApiCallCount, apiCallPollIntervalMs);
+  }
+
+  function stopApiCallPolling() {
+    if (!apiCallPollTimer) {
+      return;
+    }
+    window.clearInterval(apiCallPollTimer);
+    apiCallPollTimer = null;
+  }
+
+  function isPinnedPicker(picker) {
+    return !!(picker && picker.dataset && picker.dataset.pinned === "true");
+  }
+
+  function refreshPinnedAvatarPickers() {
+    pinnedAvatarPickers = [];
+    for (var i = 0; i < avatarPickers.length; i++) {
+      if (isPinnedPicker(avatarPickers[i])) {
+        pinnedAvatarPickers.push(avatarPickers[i]);
+      }
+    }
+  }
+
+  function refreshVisibleAvatarPickers() {
+    visibleAvatarPickers = [];
+    for (var i = 0; i < avatarPickers.length; i++) {
+      if (!avatarPickers[i].hidden) {
+        visibleAvatarPickers.push(avatarPickers[i]);
+      }
+    }
+  }
+
+  function calculateVisibleAvatarCount() {
+    if (!avatars || !avatarPickers.length) {
+      return 0;
+    }
+
+    var containerWidth = avatars.clientWidth;
+    if (!Number.isFinite(containerWidth) || containerWidth <= 0) {
+      return avatarPickers.length;
+    }
+
+    var step = avatarPickerStep;
+    if (!Number.isFinite(step) || step <= 0) {
+      step = 70;
+    }
+
+    var count = Math.floor(containerWidth / step);
+    if (count < 1) {
+      count = 1;
+    }
+    if (count > avatarPickers.length) {
+      count = avatarPickers.length;
+    }
+    return count;
+  }
+
+  function applyAvatarVisibilityLimit() {
+    if (!avatars || !avatarPickers.length) {
+      return;
+    }
+
+    var visibleCount = calculateVisibleAvatarCount();
+    refreshPinnedAvatarPickers();
+    if (visibleCount < pinnedAvatarPickers.length) {
+      visibleCount = pinnedAvatarPickers.length;
+    }
+    var remainingSlots = Math.max(0, visibleCount - pinnedAvatarPickers.length);
+    var hasActiveVisible = false;
+
+    for (var i = 0; i < avatarPickers.length; i++) {
+      var picker = avatarPickers[i];
+      var isVisible = false;
+      if (isPinnedPicker(picker)) {
+        isVisible = true;
+      } else if (remainingSlots > 0) {
+        isVisible = true;
+        remainingSlots -= 1;
+      }
+      picker.hidden = !isVisible;
+
+      if (isVisible) {
+        picker.removeAttribute("aria-hidden");
+        picker.removeAttribute("tabindex");
+        if (picker.classList.contains("is-active")) {
+          hasActiveVisible = true;
+        }
+      } else {
+        picker.setAttribute("aria-hidden", "true");
+        picker.tabIndex = -1;
+      }
+    }
+
+    refreshVisibleAvatarPickers();
+
+    if (!hasActiveVisible && visibleAvatarPickers.length) {
+      setActivePicker(visibleAvatarPickers[0].dataset.uuid);
+      if (tryname && !tryname.value) {
+        tryname.value = visibleAvatarPickers[0].dataset.uuid;
+      }
+    }
+
+    if (activeTooltipTarget && activeTooltipTarget.hidden) {
+      hidePickerTooltip();
+    }
+  }
+
+  function shuffleArray(items) {
+    for (var i = items.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = items[i];
+      items[i] = items[j];
+      items[j] = tmp;
+    }
+  }
+
+  function randomizeAvatarPickerOrder() {
+    if (!avatars) {
+      return;
+    }
+
+    var currentPickers = avatars.querySelectorAll(".avatar-picker");
+    var pinned = [];
+    var other = [];
+
+    for (var i = 0; i < currentPickers.length; i++) {
+      if (isPinnedPicker(currentPickers[i])) {
+        pinned.push(currentPickers[i]);
+      } else {
+        other.push(currentPickers[i]);
+      }
+    }
+
+    shuffleArray(other);
+    var ordered = pinned.concat(other);
+    for (var k = 0; k < ordered.length; k++) {
+      avatars.appendChild(ordered[k]);
+    }
+  }
 
   function assignPickerTooltip(target) {
     if (!target) {
@@ -117,25 +327,32 @@ document.addEventListener("DOMContentLoaded", function(event) {
   }
 
   if (avatars) {
-    for (var i = 0; i < avatars.children.length; i++) {
-      avatars.appendChild(avatars.children[Math.random() * i | 0]);
-    }
+    randomizeAvatarPickerOrder();
 
     avatarPickers = avatars.querySelectorAll(".avatar-picker");
+    refreshPinnedAvatarPickers();
+    if (avatarPickers.length) {
+      var estimatedStep = avatars.scrollWidth / avatarPickers.length;
+      if (Number.isFinite(estimatedStep) && estimatedStep > 0) {
+        avatarPickerStep = estimatedStep;
+      }
+    }
+    applyAvatarVisibilityLimit();
 
     var movePickerFocus = function(current, offset) {
+      var pickerList = visibleAvatarPickers.length ? visibleAvatarPickers : avatarPickers;
       var currentIndex = -1;
-      for (var m = 0; m < avatarPickers.length; m++) {
-        if (avatarPickers[m] === current) {
+      for (var m = 0; m < pickerList.length; m++) {
+        if (pickerList[m] === current) {
           currentIndex = m;
           break;
         }
       }
-      if (currentIndex === -1 || !avatarPickers.length) {
+      if (currentIndex === -1 || !pickerList.length) {
         return;
       }
-      var nextIndex = (currentIndex + offset + avatarPickers.length) % avatarPickers.length;
-      var nextPicker = avatarPickers[nextIndex];
+      var nextIndex = (currentIndex + offset + pickerList.length) % pickerList.length;
+      var nextPicker = pickerList[nextIndex];
       if (!nextPicker) {
         return;
       }
@@ -164,16 +381,18 @@ document.addEventListener("DOMContentLoaded", function(event) {
           movePickerFocus(this, -1);
         } else if (e.key === "Home") {
           e.preventDefault();
-          if (avatarPickers.length) {
-            avatarPickers[0].focus();
+          var pickerList = visibleAvatarPickers.length ? visibleAvatarPickers : avatarPickers;
+          if (pickerList.length) {
+            pickerList[0].focus();
             clearTryAlert();
-            applyUuid(avatarPickers[0].dataset.uuid);
-            showPickerTooltip(avatarPickers[0]);
+            applyUuid(pickerList[0].dataset.uuid);
+            showPickerTooltip(pickerList[0]);
           }
         } else if (e.key === "End") {
           e.preventDefault();
-          if (avatarPickers.length) {
-            var lastPicker = avatarPickers[avatarPickers.length - 1];
+          var pickerList = visibleAvatarPickers.length ? visibleAvatarPickers : avatarPickers;
+          if (pickerList.length) {
+            var lastPicker = pickerList[pickerList.length - 1];
             lastPicker.focus();
             clearTryAlert();
             applyUuid(lastPicker.dataset.uuid);
@@ -191,6 +410,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
   }, { passive: true });
 
   window.addEventListener("resize", function() {
+    applyAvatarVisibilityLimit();
     if (activeTooltipTarget) {
       positionPickerTooltip(activeTooltipTarget);
     }
@@ -263,6 +483,56 @@ document.addEventListener("DOMContentLoaded", function(event) {
       }
       link.href = link.dataset.template.replaceAll("$", normalized);
     }
+  }
+
+  function buildSnippetUrl(template) {
+    var resolved = String(template || "")
+      .replaceAll("{uuid}", sampleUuid)
+      .replaceAll("{uuid-or-username}", samplePlayer);
+    if (!resolved.startsWith("/")) {
+      resolved = "/" + resolved;
+    }
+    return window.location.origin + resolved;
+  }
+
+  function buildSdkSnippet() {
+    if (!sdkEndpoint || !sdkLanguage || !sdkSnippetCode) {
+      return;
+    }
+
+    var template = sdkEndpoint.value;
+    var language = sdkLanguage.value;
+    var url = buildSnippetUrl(template);
+    var snippet = "";
+
+    if (language === "javascript") {
+      snippet = [
+        "const response = await fetch(\"" + url + "\", {",
+        "  headers: { Accept: \"application/json\" },",
+        "});",
+        "",
+        "const isJson = (response.headers.get(\"content-type\") || \"\").includes(\"application/json\");",
+        "const payload = isJson ? await response.json() : await response.blob();",
+        "console.log(payload);"
+      ].join("\n");
+    } else if (language === "python") {
+      snippet = [
+        "import requests",
+        "",
+        "response = requests.get(\"" + url + "\", timeout=10)",
+        "content_type = response.headers.get(\"content-type\", \"\")",
+        "payload = response.json() if \"application/json\" in content_type else response.content",
+        "print(payload)"
+      ].join("\n");
+    } else {
+      snippet = [
+        "curl -L \\",
+        "  -H \"Accept: application/json\" \\",
+        "  \"" + url + "\""
+      ].join("\n");
+    }
+
+    sdkSnippetCode.textContent = snippet;
   }
 
   function setupCodeCopyButtons() {
@@ -386,15 +656,34 @@ document.addEventListener("DOMContentLoaded", function(event) {
   }
 
   if (!tryit || !tryname) {
+    if (apiCallCountValue) {
+      startApiCallPolling();
+      document.addEventListener("visibilitychange", function() {
+        if (document.hidden) {
+          stopApiCallPolling();
+        } else {
+          startApiCallPolling();
+        }
+      });
+    }
     return;
   }
 
   setupCodeCopyButtons();
+  buildSdkSnippet();
+
+  if (sdkEndpoint) {
+    sdkEndpoint.addEventListener("change", buildSdkSnippet);
+  }
+  if (sdkLanguage) {
+    sdkLanguage.addEventListener("change", buildSdkSnippet);
+  }
 
   tryit.onsubmit = function(e) {
     e.preventDefault();
     clearTryAlert();
-    var fallback = avatarPickers.length ? avatarPickers[0].dataset.uuid : "853c80ef3c3749fdaa49938b674adae6";
+    var fallbackPickers = visibleAvatarPickers.length ? visibleAvatarPickers : avatarPickers;
+    var fallback = fallbackPickers.length ? fallbackPickers[0].dataset.uuid : "853c80ef3c3749fdaa49938b674adae6";
     var value = tryname.value.trim() || fallback;
 
     if (trySubmit) {
@@ -447,6 +736,20 @@ document.addEventListener("DOMContentLoaded", function(event) {
   });
 
   if (avatarPickers.length) {
-    applyUuid(avatarPickers[0].dataset.uuid);
+    var initialPickers = visibleAvatarPickers.length ? visibleAvatarPickers : avatarPickers;
+    if (initialPickers.length) {
+      applyUuid(initialPickers[0].dataset.uuid);
+    }
+  }
+
+  if (apiCallCountValue) {
+    startApiCallPolling();
+    document.addEventListener("visibilitychange", function() {
+      if (document.hidden) {
+        stopApiCallPolling();
+      } else {
+        startApiCallPolling();
+      }
+    });
   }
 });

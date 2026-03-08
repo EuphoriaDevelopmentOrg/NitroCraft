@@ -1,8 +1,30 @@
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 
-const require = createRequire(import.meta.url);
-const { createCanvas, loadImage } = require("canvas") as typeof import("canvas");
+type CanvasModule = typeof import("canvas");
+
+declare global {
+  // Process-wide singleton for native canvas module.
+  // This avoids duplicate native type registration in hot-reload/dev contexts.
+  // eslint-disable-next-line no-var
+  var __nitrocraftCanvasModule: CanvasModule | undefined;
+}
+
+function getCanvasModule(): CanvasModule {
+  if (!globalThis.__nitrocraftCanvasModule) {
+    const require = createRequire(import.meta.url);
+    globalThis.__nitrocraftCanvasModule = require("canvas") as CanvasModule;
+  }
+  return globalThis.__nitrocraftCanvasModule;
+}
+
+function createCanvas(width: number, height: number): any {
+  return getCanvasModule().createCanvas(width, height);
+}
+
+async function loadImage(source: Buffer): Promise<any> {
+  return getCanvasModule().loadImage(source);
+}
 
 function removeTransparency(canvas: any): any {
   const ctx = canvas.getContext("2d");

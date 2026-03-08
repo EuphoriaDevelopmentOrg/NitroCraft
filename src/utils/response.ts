@@ -1,5 +1,6 @@
 import { crc32 } from "crc";
 import { config } from "../config";
+import { metrics } from "../services/metrics";
 import { error, log, warn } from "./logging";
 import { readHeader } from "./request";
 import { resolveCorsOrigin } from "./cors";
@@ -161,6 +162,7 @@ export function respond(event: any, result: ResponseResult): Buffer | string | n
   if (incomingEtag && (incomingEtag === etag || (status === -1 && !config.server.debugEnabled))) {
     setStatusSafe(event, 304);
     log(requestId, method, path, 304, `${responseTime}ms`, `(${HUMAN_STATUS[String(status)] || "-"})`);
+    metrics.recordRequest(method, path, 304, responseTime);
     return "";
   }
 
@@ -168,6 +170,7 @@ export function respond(event: any, result: ResponseResult): Buffer | string | n
     setStatusSafe(event, 307);
     setHeaderSafe(event, "Location", result.redirect);
     log(requestId, method, path, 307, `${responseTime}ms`, `(${HUMAN_STATUS[String(status)] || "-"})`);
+    metrics.recordRequest(method, path, 307, responseTime);
     return "";
   }
 
@@ -196,6 +199,7 @@ export function respond(event: any, result: ResponseResult): Buffer | string | n
 
   setStatusSafe(event, responseCode);
   log(requestId, method, path, responseCode, `${responseTime}ms`, `(${HUMAN_STATUS[String(status)] || "-"})`);
+  metrics.recordRequest(method, path, responseCode, responseTime);
   return result.body ?? null;
 }
 

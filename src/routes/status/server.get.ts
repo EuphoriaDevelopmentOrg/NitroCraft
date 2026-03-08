@@ -1,5 +1,6 @@
 import { fetchServerStatus } from "minecraft-toolkit";
 import { config } from "../../config";
+import { statusProbeCacheKey, withStatusProbeCache } from "../../services/status-probe-cache";
 import { getQueryParams } from "../../utils/query";
 import { validateServerProbeAddress } from "../../utils/network-safety";
 import {
@@ -49,12 +50,23 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const payload = await fetchServerStatus(address, {
-      edition,
-      port,
-      timeoutMs: timeoutMs ?? config.server.httpTimeout,
-      protocolVersion,
-    });
+    const resolvedTimeoutMs = timeoutMs ?? config.server.httpTimeout;
+    const payload = await withStatusProbeCache(
+      "server",
+      statusProbeCacheKey("server", [
+        address,
+        edition || "auto",
+        port,
+        resolvedTimeoutMs,
+        protocolVersion,
+      ]),
+      () => fetchServerStatus(address, {
+        edition,
+        port,
+        timeoutMs: resolvedTimeoutMs,
+        protocolVersion,
+      }),
+    );
     return jsonResponse(event, payload);
   } catch (err) {
     return jsonToolkitError(event, err, "Failed to probe server status.");

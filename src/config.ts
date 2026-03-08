@@ -39,6 +39,15 @@ function envCsv(name: string, fallback: string[]): string[] {
     .filter(Boolean);
 }
 
+function envString(name: string, fallback: string): string {
+  const raw = process.env[name];
+  if (raw === undefined) {
+    return fallback;
+  }
+  const value = String(raw).trim();
+  return value || fallback;
+}
+
 function parseRedisUrl(value: string | undefined): { url: string | null; enabled: boolean; warning: string | null } {
   const raw = String(value || "").trim();
   if (!raw) {
@@ -138,6 +147,51 @@ function parseRetentionIntervalHours(): number {
   return 24;
 }
 
+type SponsorCard = {
+  url: string;
+  image: string;
+  alt: string;
+};
+
+function parseSponsorCards(value: string | undefined, fallbackAlt: string): SponsorCard[] {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    const cards: SponsorCard[] = [];
+    for (const entry of parsed) {
+      if (!entry || typeof entry !== "object") {
+        continue;
+      }
+
+      const record = entry as Record<string, unknown>;
+      const url = String(record.url || "").trim();
+      const image = String(record.image || "").trim();
+      const alt = String(record.alt || "").trim() || fallbackAlt;
+
+      if (!url || !image) {
+        continue;
+      }
+
+      cards.push({ url, image, alt });
+    }
+
+    return cards;
+  } catch {
+    return [];
+  }
+}
+
+const sponsorCardAlt = envString("SPONSOR_CARD_ALT", "Sponsor");
+const sponsorCards = parseSponsorCards(process.env.SPONSOR_CARDS, sponsorCardAlt);
+
 export const config = {
   avatars: {
     minSize: envInt("AVATAR_MIN", 1),
@@ -172,10 +226,21 @@ export const config = {
   redis: redisConfig.url,
   redisEnabled: redisConfig.enabled,
   redisWarning: redisConfig.warning,
+  metrics: {
+    apiCallCountFile: envString("API_CALL_COUNT_FILE", "./data/api-call-count.json"),
+    apiCallCountFlushMs: envInt("API_CALL_COUNT_FLUSH_MS", 2000),
+  },
+  sponsors: {
+    cardUrl: envString("SPONSOR_CARD_URL", ""),
+    cardImage: envString("SPONSOR_CARD_IMAGE", ""),
+    cardAlt: sponsorCardAlt,
+    cards: sponsorCards,
+  },
   server: {
     port: envInt("PORT", envInt("SERVER_PORT", 3000)),
     bind: process.env.BIND || "0.0.0.0",
     httpTimeout: envInt("EXTERNAL_HTTP_TIMEOUT", 2000),
+    statusProbeCacheTtlMs: envInt("STATUS_PROBE_CACHE_TTL_MS", 10_000),
     debugEnabled: envBool("DEBUG", false),
     logTime: envBool("LOG_TIME", true),
     sessionsRateLimit: envInt("SESSIONS_RATE_LIMIT", Number.NaN),

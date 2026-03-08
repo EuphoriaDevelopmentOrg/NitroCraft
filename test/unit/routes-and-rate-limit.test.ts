@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { config } from "../../src/config";
+import { withStatusProbeCache } from "../../src/services/status-probe-cache";
 import { createSessionRateLimitError, tryConsumeSessionRequest } from "../../src/utils/session-rate-limit";
 import { respond } from "../../src/utils/response";
 
@@ -162,6 +163,222 @@ test("status routes reject out-of-range numeric values", async () => {
     assert.match(String(body), /Invalid numeric query value/i);
   } finally {
     (config.server as any).allowPrivateStatusTargets = originalAllowPrivate;
+  }
+});
+
+test("status icon route rejects out-of-range protocolVersion", async () => {
+  const route = (await import("../../src/routes/status/icon.get")).default;
+  const originalAllowPrivate = config.server.allowPrivateStatusTargets;
+  try {
+    (config.server as any).allowPrivateStatusTargets = true;
+
+    const { event, res } = createMockEvent({
+      url: "/status/icon?address=127.0.0.1&protocolVersion=1000001",
+    });
+
+    const body = await route(event);
+    assert.equal(res.statusCode, 422);
+    assert.match(String(body), /Invalid numeric query value/i);
+  } finally {
+    (config.server as any).allowPrivateStatusTargets = originalAllowPrivate;
+  }
+});
+
+test("format routes handle code stripping and invalid mode", async () => {
+  const stripRoute = (await import("../../src/routes/format/strip.get")).default;
+  const htmlRoute = (await import("../../src/routes/format/html.get")).default;
+
+  const strip = createMockEvent({
+    url: "/format/strip?text=%C2%A7aWelcome%20%C2%A7lHero",
+  });
+  const strippedBody = await stripRoute(strip.event);
+  assert.equal(strip.res.statusCode, 200);
+  const strippedPayload = JSON.parse(String(strippedBody));
+  assert.equal(strippedPayload.text, "Welcome Hero");
+  assert.equal(strippedPayload.hadCodes, true);
+
+  const invalidMode = createMockEvent({
+    url: "/format/html?text=%C2%A7aWelcome&mode=broken",
+  });
+  const invalidBody = await htmlRoute(invalidMode.event);
+  assert.equal(invalidMode.res.statusCode, 422);
+  assert.match(String(invalidBody), /Invalid mode/i);
+});
+
+test("status probe cache deduplicates inflight work and respects ttl", async () => {
+  const originalTtl = config.server.statusProbeCacheTtlMs;
+  try {
+    (config.server as any).statusProbeCacheTtlMs = 80;
+
+    let calls = 0;
+    const key = `test-${Date.now()}-${Math.random()}`;
+    const loader = async () => {
+      calls += 1;
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      return { ok: true, calls };
+    };
+
+    const [first, second] = await Promise.all([
+      withStatusProbeCache("test", key, loader),
+      withStatusProbeCache("test", key, loader),
+    ]);
+    assert.equal(first.ok, true);
+    assert.equal(second.ok, true);
+    assert.equal(calls, 1);
+
+    const third = await withStatusProbeCache("test", key, loader);
+    assert.equal(third.ok, true);
+    assert.equal(calls, 1);
+
+    await new Promise((resolve) => setTimeout(resolve, 110));
+    const fourth = await withStatusProbeCache("test", key, loader);
+    assert.equal(fourth.ok, true);
+    assert.equal(calls, 2);
+  } finally {
+    (config.server as any).statusProbeCacheTtlMs = originalTtl;
+  }
+});
+
+test("metrics and openapi routes return expected payloads", async () => {
+  const metricsRoute = (await import("../../src/routes/metrics.get")).default;
+  const apiCallsRoute = (await import("../../src/routes/metrics/api-calls.get")).default;
+  const openApiRoute = (await import("../../src/routes/openapi.json.get")).default;
+  const { metrics } = await import("../../src/services/metrics");
+
+  const metricsEvent = createMockEvent({
+    url: "/metrics",
+  });
+  const metricsBody = await metricsRoute(metricsEvent.event);
+  assert.equal(metricsEvent.res.statusCode, 200);
+  assert.match(String(metricsBody), /nitrocraft_http_requests_total/i);
+  assert.match(String(metricsBody), /nitrocraft_status_probe_cache_hit_ratio/i);
+
+  const apiCallsEvent = createMockEvent({
+    url: "/metrics/api-calls",
+  });
+  const beforeApiCallsTotal = metrics.getApiCallCount();
+  const apiCallsBody = await apiCallsRoute(apiCallsEvent.event);
+  const afterApiCallsTotal = metrics.getApiCallCount();
+  assert.equal(apiCallsEvent.res.statusCode, 200);
+  const apiCallsPayload = JSON.parse(String(apiCallsBody));
+  assert.equal(typeof apiCallsPayload.apiCalls, "number");
+  assert.ok(Number.isFinite(apiCallsPayload.apiCalls));
+  assert.equal(afterApiCallsTotal, beforeApiCallsTotal);
+
+  const openApiEvent = createMockEvent({
+    url: "/openapi.json",
+    headers: {
+      host: "nitrocraft.test",
+      "x-forwarded-proto": "https",
+      "x-forwarded-host": "nitrocraft.test",
+    },
+  });
+  const openApiBody = await openApiRoute(openApiEvent.event);
+  assert.equal(openApiEvent.res.statusCode, 200);
+  const spec = JSON.parse(String(openApiBody));
+  assert.equal(spec.openapi, "3.1.0");
+  assert.ok(spec.paths["/openapi.json"]);
+  assert.ok(spec.paths["/metrics"]);
+  assert.ok(spec.paths["/metrics/api-calls"]);
+  assert.equal(typeof spec.servers[0].url, "string");
+  assert.ok(String(spec.servers[0].url).startsWith("http"));
+});
+
+test("server list builder page renders expected shell", async () => {
+  const route = (await import("../../src/routes/tools/server-list.get")).default;
+  const { event, res } = createMockEvent({
+    url: "/tools/server-list",
+  });
+
+  const body = await route(event);
+  assert.equal(res.statusCode, 200);
+  assert.match(String(body), /Server List Builder/i);
+  assert.match(String(body), /slb-import-btn/);
+});
+
+test("index route renders multiple sponsor cards and falls back to legacy sponsor fields", async () => {
+  const route = (await import("../../src/routes/index.get")).default;
+  const originalCards = config.sponsors.cards.map((card) => ({ ...card }));
+  const originalUrl = config.sponsors.cardUrl;
+  const originalImage = config.sponsors.cardImage;
+  const originalAlt = config.sponsors.cardAlt;
+
+  try {
+    (config.sponsors as any).cards = [
+      {
+        url: "https://sponsor-a.example.com/click",
+        image: "/images/sponsor-a.png",
+        alt: "Sponsor A",
+      },
+      {
+        url: "https://sponsor-b.example.com/click",
+        image: "https://cdn.example.com/sponsor-b.png",
+        alt: "Sponsor B",
+      },
+    ];
+    (config.sponsors as any).cardUrl = "";
+    (config.sponsors as any).cardImage = "";
+
+    const configured = createMockEvent({
+      url: "/",
+      headers: {
+        host: "nitrocraft.test",
+        "x-forwarded-proto": "https",
+      },
+    });
+    const configuredBody = await route(configured.event);
+    assert.equal(configured.res.statusCode, 200);
+    assert.match(String(configuredBody), /class="sponsor-strip"/);
+    assert.match(String(configuredBody), /data-pinned="true" data-uuid="d634462bd663401d9788a8596307bc4d"/);
+    assert.match(String(configuredBody), /data-pinned="true" data-uuid="15851079f1d24d418207ce9f914e966d"/);
+    assert.match(String(configuredBody), /Support tiers:/);
+    assert.match(String(configuredBody), /<strong>\$20<\/strong>\s*Sponsor Spotlight/);
+    assert.match(String(configuredBody), /href="https:\/\/sponsor-a\.example\.com\/click"/);
+    assert.match(String(configuredBody), /href="https:\/\/sponsor-b\.example\.com\/click"/);
+    assert.match(String(configuredBody), /src="https:\/\/[^"]+\/images\/sponsor-a\.png"/);
+    assert.match(String(configuredBody), /src="https:\/\/cdn\.example\.com\/sponsor-b\.png"/);
+    assert.match(String(configuredBody), /alt="Sponsor A"/);
+    assert.match(String(configuredBody), /alt="Sponsor B"/);
+    assert.equal((String(configuredBody).match(/class="sponsor-card"/g) || []).length, 2);
+
+    (config.sponsors as any).cards = [];
+    (config.sponsors as any).cardUrl = "https://single.example.com/click";
+    (config.sponsors as any).cardImage = "/images/sponsor-single.png";
+    (config.sponsors as any).cardAlt = "Single Sponsor";
+
+    const single = createMockEvent({
+      url: "/",
+      headers: {
+        host: "nitrocraft.test",
+        "x-forwarded-proto": "https",
+      },
+    });
+    const singleBody = await route(single.event);
+    assert.equal(single.res.statusCode, 200);
+    assert.match(String(singleBody), /href="https:\/\/single\.example\.com\/click"/);
+    assert.match(String(singleBody), /src="https:\/\/[^"]+\/images\/sponsor-single\.png"/);
+    assert.match(String(singleBody), /alt="Single Sponsor"/);
+    assert.equal((String(singleBody).match(/class="sponsor-card"/g) || []).length, 1);
+
+    (config.sponsors as any).cards = [];
+    (config.sponsors as any).cardUrl = "";
+    (config.sponsors as any).cardImage = "";
+
+    const unconfigured = createMockEvent({
+      url: "/",
+      headers: {
+        host: "nitrocraft.test",
+        "x-forwarded-proto": "https",
+      },
+    });
+    const unconfiguredBody = await route(unconfigured.event);
+    assert.equal(unconfigured.res.statusCode, 200);
+    assert.doesNotMatch(String(unconfiguredBody), /class="sponsor-strip"/);
+  } finally {
+    (config.sponsors as any).cards = originalCards;
+    (config.sponsors as any).cardUrl = originalUrl;
+    (config.sponsors as any).cardImage = originalImage;
+    (config.sponsors as any).cardAlt = originalAlt;
   }
 });
 

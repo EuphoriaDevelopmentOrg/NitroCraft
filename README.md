@@ -10,50 +10,10 @@ NitroCraft is a Minecraft avatar/render API built on Nitro and `minecraft-toolki
 
 ## Preview
 
-| Steve Avatar | Alex Avatar | Steve Skin |
-| --- | --- | --- |
-| ![Steve Avatar](public/images/mhf_steve.png) | ![Alex Avatar](public/images/mhf_alex.png) | ![Steve Skin](public/images/mhf_steve_skin.png) |
-
-### Fetched Skin Samples
-
-<p align="center">
-  <img src="images/skins/292009a4925b58f02c77dadc3ecef07ea4c7472f64e0fdc32ce5522489362680.png" alt="Fetched skin sample 1" width="72" />
-  <img src="images/skins/50c410fad8d9d8825ad56b0e443e2777a6b46bfa20dacd1d2f55edc71fbeb06d.png" alt="Fetched skin sample 2" width="72" />
-  <img src="images/skins/56313add193389fc6154549026a3247727c3ebaaa6888820a3fb126599c230a1.png" alt="Fetched skin sample 3" width="72" />
-  <img src="images/skins/5b1aa335740b970fd44e8fa60c6857cb8322b3d11599a1c9462186962dbf641d.png" alt="Fetched skin sample 4" width="72" />
-  <img src="images/skins/68bb81ce003b18edfa2af119b0fbf91adc704d87ec2ea4262874d17003c5ab.png" alt="Fetched skin sample 5" width="72" />
-  <img src="images/skins/6b46b561b84da3179f033dc0cc7862def10ec0c7d541edec320d860fe160584c.png" alt="Fetched skin sample 6" width="72" />
-  <img src="images/skins/71cf0793a772b2168cb73daa4b0c08ec0a817ab96ac426a8dc5f793a9ee45dd6.png" alt="Fetched skin sample 7" width="72" />
-  <img src="images/skins/74d1e08b0bb7e9f590af27758125bbed1778ac6cef729aedfcb9613e9911ae75.png" alt="Fetched skin sample 8" width="72" />
-  <img src="images/skins/765b4f20d4e3850c2e79453873e571c66cd28755b9982aaf86f8ca2ffe319503.png" alt="Fetched skin sample 9" width="72" />
-  <img src="images/skins/7fd9ba42a7c81eeea22f1524271ae85a8e045ce0af5a6ae16c6406ae917e68b5.png" alt="Fetched skin sample 10" width="72" />
-</p>
-
-### Fetched Face Samples
-
-<p align="center">
-  <img src="images/faces/292009a4925b58f02c77dadc3ecef07ea4c7472f64e0fdc32ce5522489362680.png" alt="Fetched face sample 1" width="72" />
-  <img src="images/faces/50c410fad8d9d8825ad56b0e443e2777a6b46bfa20dacd1d2f55edc71fbeb06d.png" alt="Fetched face sample 2" width="72" />
-  <img src="images/faces/56313add193389fc6154549026a3247727c3ebaaa6888820a3fb126599c230a1.png" alt="Fetched face sample 3" width="72" />
-  <img src="images/faces/5b1aa335740b970fd44e8fa60c6857cb8322b3d11599a1c9462186962dbf641d.png" alt="Fetched face sample 4" width="72" />
-  <img src="images/faces/68bb81ce003b18edfa2af119b0fbf91adc704d87ec2ea4262874d17003c5ab.png" alt="Fetched face sample 5" width="72" />
-  <img src="images/faces/6b46b561b84da3179f033dc0cc7862def10ec0c7d541edec320d860fe160584c.png" alt="Fetched face sample 6" width="72" />
-  <img src="images/faces/71cf0793a772b2168cb73daa4b0c08ec0a817ab96ac426a8dc5f793a9ee45dd6.png" alt="Fetched face sample 7" width="72" />
-  <img src="images/faces/74d1e08b0bb7e9f590af27758125bbed1778ac6cef729aedfcb9613e9911ae75.png" alt="Fetched face sample 8" width="72" />
-  <img src="images/faces/765b4f20d4e3850c2e79453873e571c66cd28755b9982aaf86f8ca2ffe319503.png" alt="Fetched face sample 9" width="72" />
-  <img src="images/faces/7fd9ba42a7c81eeea22f1524271ae85a8e045ce0af5a6ae16c6406ae917e68b5.png" alt="Fetched face sample 10" width="72" />
-</p>
-
-### Fetched Render Samples
-
-<p align="center">
-  <img src="images/renders/292009a4925b58f02c77dadc3ecef07ea4c7472f64e0fdc32ce5522489362680-6-body-t.png" alt="Fetched body render sample 1" height="140" />
-  <img src="images/renders/50c410fad8d9d8825ad56b0e443e2777a6b46bfa20dacd1d2f55edc71fbeb06d-6-body-t.png" alt="Fetched body render sample 2" height="140" />
-  <img src="images/renders/5b1aa335740b970fd44e8fa60c6857cb8322b3d11599a1c9462186962dbf641d-6-body-t.png" alt="Fetched body render sample 3" height="140" />
-  <img src="images/renders/6b46b561b84da3179f033dc0cc7862def10ec0c7d541edec320d860fe160584c-6-body-t.png" alt="Fetched body render sample 4" height="140" />
-  <img src="images/renders/71cf0793a772b2168cb73daa4b0c08ec0a817ab96ac426a8dc5f793a9ee45dd6-6-body-t.png" alt="Fetched body render sample 5" height="140" />
-  <img src="images/renders/74d1e08b0bb7e9f590af27758125bbed1778ac6cef729aedfcb9613e9911ae75-6-body-t.png" alt="Fetched body render sample 6" height="140" />
-</p>
+| Player | Avatar | Head Render | Body Render |
+| --- | --- | --- | --- |
+| RepGraphics | ![RepGraphics Avatar](https://nitrocraft.uk/avatars/d634462bd663401d9788a8596307bc4d?size=100&overlay) | ![RepGraphics Head Render](https://nitrocraft.uk/renders/head/d634462bd663401d9788a8596307bc4d?scale=6&overlay) | ![RepGraphics Body Render](https://nitrocraft.uk/renders/body/d634462bd663401d9788a8596307bc4d?scale=6&overlay) |
+| 26bz | ![26bz Avatar](https://nitrocraft.uk/avatars/15851079f1d24d418207ce9f914e966d?size=100&overlay) | ![26bz Head Render](https://nitrocraft.uk/renders/head/15851079f1d24d418207ce9f914e966d?scale=6&overlay) | ![26bz Body Render](https://nitrocraft.uk/renders/body/15851079f1d24d418207ce9f914e966d?scale=6&overlay) |
 
 ## Quick Links
 
@@ -68,8 +28,11 @@ NitroCraft is a Minecraft avatar/render API built on Nitro and `minecraft-toolki
 - UUID-based avatar, skin, cape, and render endpoints
 - Username/UUID resolution endpoints via `minecraft-toolkit`
 - Disk + metadata caching with Redis or memory backend
+- Short-TTL + in-flight deduplicated status probe caching for `/status/*` endpoints
 - Configurable outbound Mojang session rate limiting (`SESSIONS_RATE_LIMIT`)
 - Optional inbound per-IP request rate limiting (`REQUESTS_RATE_LIMIT`)
+- OpenAPI schema (`/openapi.json`) and Prometheus metrics (`/metrics`)
+- Interactive server-list simulator (`/tools/server-list`) with import/share flow
 - Nitro runtime with `pnpm` workflows
 
 ## API Endpoints
@@ -102,6 +65,12 @@ NitroCraft is a Minecraft avatar/render API built on Nitro and `minecraft-toolki
 - `GET /format/html?text=...`
 - `GET /format/strip?text=...`
 - `GET /format/css`
+
+### Tooling and Meta
+
+- `GET /tools/server-list`
+- `GET /openapi.json`
+- `GET /metrics`
 
 ## Getting Started
 
@@ -170,6 +139,12 @@ Create a `.env` file and configure the following values.
 | --- | --- |
 | `CACHE_BACKEND` | Cache backend: `redis`, `memory`, or `none`. |
 | `REDIS_URL` | Redis connection string (used when `CACHE_BACKEND=redis`). |
+| `API_CALL_COUNT_FILE` | JSON file path for persistent API call count (used when Redis is unavailable). |
+| `API_CALL_COUNT_FLUSH_MS` | Flush interval for persisting API call count updates. |
+| `SPONSOR_CARDS` | JSON array of sponsor cards shown below the jumbotron; each entry is `{ "url": "...", "image": "...", "alt": "..." }`. Takes precedence over `SPONSOR_CARD_*`. |
+| `SPONSOR_CARD_URL` | External link target for the optional sponsor card shown below the homepage jumbotron. |
+| `SPONSOR_CARD_IMAGE` | Image URL (or `/public-path` image) used for the optional sponsor card. |
+| `SPONSOR_CARD_ALT` | Alt text for the sponsor card image (`Sponsor` by default). |
 | `SESSIONS_RATE_LIMIT` | Outbound Mojang session request limit. |
 | `REQUESTS_RATE_LIMIT` | Enable/disable inbound per-IP request limiting. |
 | `REQUESTS_RATE_LIMIT_WINDOW_MS` | Rate-limit window size in milliseconds. |
@@ -185,23 +160,29 @@ Create a `.env` file and configure the following values.
 | `PORT` | HTTP server port. |
 | `BIND` | Bind address/interface. |
 | `EXTERNAL_URL` | Public base URL used for generated external links. |
+| `STATUS_PROBE_CACHE_TTL_MS` | Cache TTL for `/status/java`, `/status/bedrock`, `/status/server`, and `/status/icon` probes. |
 
 ## Notes
 
 - Render endpoints require native `canvas` dependencies in your runtime image/environment.
 - Core image endpoints use UUID input. `/players/{uuid-or-username}` resolves usernames.
+- Credit to [26bz](https://github.com/26bz) for creating [`minecraft-toolkit`](https://github.com/26bz/minecraft-toolkit), which powers player/status tooling in NitroCraft.
 
 ## Donations
 
 If NitroCraft helps your projects, you can support ongoing development here:
 
 [![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-Support-181717?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/RepGraphics)
-[![PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.me/repgraphics)
-[![Patreon](https://img.shields.io/badge/Patreon-Become%20a%20Patron-F96854?style=for-the-badge&logo=patreon&logoColor=white)](https://www.patreon.com/c/EuphoriaDevelopment)
 
 - GitHub Sponsors: [github.com/sponsors/RepGraphics](https://github.com/sponsors/RepGraphics)
-- PayPal: [paypal.me/repgraphics](https://www.paypal.me/repgraphics)
-- Patreon: [patreon.com/c/EuphoriaDevelopment](https://www.patreon.com/c/EuphoriaDevelopment)
+
+### Supporter Tiers
+
+NitroCraft tiers are designed so any support helps, while the `$20` tier is the clear best fit for teams or brands that want visibility.
+
+- `Supporter ($5/month)`: helps cover baseline hosting and maintenance costs, plus supporter role/thanks in community channels.
+- `Builder ($10/month)`: includes Supporter perks, plus priority review for one feature suggestion per month and access to sponsor polls.
+- `Sponsor Spotlight ($20/month)`: includes all lower-tier perks, plus placement in the NitroCraft homepage sponsor section and README sponsor listing with your linked image card.
 
 ## Support
 

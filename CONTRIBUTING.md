@@ -24,6 +24,12 @@ Thanks for helping improve NitroCraft. We aim to keep contributions practical, s
 0. Follow existing project style and file organization.
 0. Prefer root-cause fixes over temporary patches.
 
+## Contributor recognition
+
+0. Contributor Minecraft avatars can be added to the homepage jumbotron sample list.
+0. Pinned contributor entries use `data-pinned="true"` and are always kept visible in the jumbotron, including on mobile.
+0. If you want to be added, include your Minecraft username/UUID in your PR notes.
+
 ## Code style
 
 0. Follow the existing style of the repository.

@@ -1,5 +1,6 @@
 import { fetchServerIcon } from "minecraft-toolkit";
 import { config } from "../../config";
+import { statusProbeCacheKey, withStatusProbeCache } from "../../services/status-probe-cache";
 import { getQueryParams } from "../../utils/query";
 import { validateServerProbeAddress } from "../../utils/network-safety";
 import {
@@ -33,11 +34,16 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const payload = await fetchServerIcon(address, {
-      port,
-      timeoutMs: timeoutMs ?? config.server.httpTimeout,
-      protocolVersion,
-    });
+    const resolvedTimeoutMs = timeoutMs ?? config.server.httpTimeout;
+    const payload = await withStatusProbeCache(
+      "icon",
+      statusProbeCacheKey("icon", [address, port, resolvedTimeoutMs, protocolVersion]),
+      () => fetchServerIcon(address, {
+        port,
+        timeoutMs: resolvedTimeoutMs,
+        protocolVersion,
+      }),
+    );
 
     return jsonResponse(event, {
       host: payload.host,
