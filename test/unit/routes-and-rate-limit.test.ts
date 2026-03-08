@@ -483,6 +483,41 @@ test("request limiter middleware returns 429 when limit is exceeded", async () =
   (config.server.requestsRateLimit as any).excludePaths = original.excludePaths;
 });
 
+test("probe filter middleware turns common dotfile scans into clean 404 responses", async () => {
+  const middleware = (await import("../../src/middleware/00-probe-filter")).default;
+
+  const blocked = createMockEvent({
+    url: "/.env",
+  });
+  const blockedBody = await middleware(blocked.event);
+  assert.equal(blocked.res.statusCode, 404);
+  assert.equal(String(blockedBody), "Not Found");
+
+  const blockedEncoded = createMockEvent({
+    url: "/%2eenv.local",
+  });
+  const blockedEncodedBody = await middleware(blockedEncoded.event);
+  assert.equal(blockedEncoded.res.statusCode, 404);
+  assert.equal(String(blockedEncodedBody), "Not Found");
+
+  const allowedWellKnown = createMockEvent({
+    url: "/.well-known/security.txt",
+  });
+  const allowedResult = await middleware(allowedWellKnown.event);
+  assert.equal(allowedResult, undefined);
+});
+
+test("catch-all route returns clean 404 for unknown paths", async () => {
+  const route = (await import("../../src/routes/[...path]")).default;
+  const { event, res } = createMockEvent({
+    url: "/this-route-does-not-exist",
+  });
+
+  const body = await route(event);
+  assert.equal(res.statusCode, 404);
+  assert.equal(String(body), "Not Found");
+});
+
 test("cors defaults to allow-all and can be restricted by allowlist", () => {
   const originalAllowAll = config.server.corsAllowAll;
   const originalOrigins = [...config.server.corsOrigins];
