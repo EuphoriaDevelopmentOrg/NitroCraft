@@ -82,5 +82,5 @@ Replace `{uuid}` with a valid Minecraft UUID:
 
 ## Links
 
-- Source: https://github.com/RepGraphics/NitroCraft
-- Issues: https://github.com/RepGraphics/NitroCraft/issues
+- Source: https://github.com/EuphoriaDevelopmentOrg/NitroCraft
+- Issues: https://github.com/EuphoriaDevelopmentOrg/NitroCraft/issues

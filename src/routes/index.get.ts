@@ -101,7 +101,7 @@ export default defineEventHandler((event) => {
   </head>
   <body class="docs-page" lang="en-US">
     <a class="skip-link" href="#content">Skip to content</a>
-    <a href="https://github.com/RepGraphics/NitroCraft" target="_blank" rel="noopener noreferrer" class="forkme">View on GitHub</a>
+    <a href="https://github.com/EuphoriaDevelopmentOrg/NitroCraft" target="_blank" rel="noopener noreferrer" class="forkme">View on GitHub</a>
 
     <div class="jumbotron">
       <div class="container">
@@ -371,7 +371,7 @@ export default defineEventHandler((event) => {
         </p>
         <p class="footer-links">
           <span class="footer-link-list">
-            <a href="https://github.com/RepGraphics/NitroCraft" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a href="https://github.com/EuphoriaDevelopmentOrg/NitroCraft" target="_blank" rel="noopener noreferrer">GitHub</a>
             <a href="${safeDomain}/status/mc">Service Status</a>
             <a href="${safeDomain}/renders/head/853c80ef3c3749fdaa49938b674adae6?scale=6&amp;overlay">Live Example</a>
           </span>

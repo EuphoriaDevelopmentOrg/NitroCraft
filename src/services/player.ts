@@ -81,7 +81,7 @@ async function fetchBuffer(url: string): Promise<Buffer | null> {
     const response = await fetch(requestUrl, {
       signal: controller.signal,
       headers: {
-        "User-Agent": "NitroCraft (+https://github.com/RepGraphics/NitroCraft)",
+        "User-Agent": "NitroCraft (+https://github.com/EuphoriaDevelopmentOrg/NitroCraft)",
       },
     });
 

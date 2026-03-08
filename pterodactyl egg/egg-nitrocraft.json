@@ -352,7 +352,7 @@
       "name": "SOURCE_REPO",
       "description": "GitHub repo path for source bootstrap (owner/repo).",
       "env_variable": "SOURCE_REPO",
-      "default_value": "RepGraphics/NitroCraft",
+      "default_value": "EuphoriaDevelopmentOrg/NitroCraft",
       "user_viewable": true,
       "user_editable": true,
       "rules": "required|string|max:64",
