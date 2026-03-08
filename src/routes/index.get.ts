@@ -22,6 +22,7 @@ function formatMinutes(seconds: number): string {
 export default defineEventHandler((event) => {
   const domain = getExternalBaseUrl(event);
   const safeDomain = escapeHtml(domain);
+  const featuredUuid = "ae795aa86327408e92ab25c8a59f3ba1";
   const slugline = "Minecraft avatars, skins, and renders at Nitro speed.";
   const metaDescription =
     "Minecraft avatars, skins, capes, and renders at Nitro speed with UUID lookups and caching.";
@@ -112,7 +113,7 @@ export default defineEventHandler((event) => {
           </div>
         </div>
 
-        <div id="avatar-wrapper">
+        <div id="avatar-wrapper" role="toolbar" aria-label="Choose a sample UUID">
           <button type="button" class="avatar-picker is-active" data-uuid="ae795aa86327408e92ab25c8a59f3ba1" title="jomo" aria-label="Use jomo UUID"><span class="avatar jomo"></span></button>
           <button type="button" class="avatar-picker" data-uuid="2d5aa9cdaeb049189930461fc9b91cc5" title="jake_0" aria-label="Use jake_0 UUID"><span class="avatar jake_0"></span></button>
           <button type="button" class="avatar-picker" data-uuid="0ea8eca3dbf647cc9d1ac64551ca975c" title="sk89q" aria-label="Use sk89q UUID"><span class="avatar sk89q"></span></button>
@@ -146,6 +147,12 @@ export default defineEventHandler((event) => {
           <a href="#meta">Meta</a>
         </nav>
 
+        <div class="quick-links" aria-label="Quick links">
+          <a class="quick-link" data-template="${safeDomain}/avatars/$?size=128&amp;overlay" href="${safeDomain}/avatars/${featuredUuid}?size=128&amp;overlay" target="_blank" rel="noopener noreferrer">Open Avatar</a>
+          <a class="quick-link" data-template="${safeDomain}/renders/head/$?scale=8&amp;overlay" href="${safeDomain}/renders/head/${featuredUuid}?scale=8&amp;overlay" target="_blank" rel="noopener noreferrer">Open Head Render</a>
+          <a class="quick-link" data-template="${safeDomain}/players/$" href="${safeDomain}/players/${featuredUuid}" target="_blank" rel="noopener noreferrer">Open Player JSON</a>
+        </div>
+
         <div id="support" class="support-strip" aria-label="Support NitroCraft">
           <span class="support-strip-label">Support NitroCraft:</span>
           <a href="https://github.com/sponsors/RepGraphics" target="_blank" rel="noopener noreferrer">
@@ -164,20 +171,22 @@ export default defineEventHandler((event) => {
     <main id="content" class="container row docs-row">
       <div class="docs-main">
         <section id="documentation">
-          <div id="alerts"></div>
+          <div id="alerts" aria-live="polite"></div>
 
           <section id="try">
             <h2><a href="#try">Try it</a></h2>
             <form id="tryit" action="#">
+              <label class="visually-hidden" for="tryname">UUID or username</label>
               <div class="row">
                 <div class="col-md-11">
-                  <input id="tryname" type="text" placeholder="Enter UUID or username">
+                  <input id="tryname" name="player" type="text" placeholder="Enter UUID or username" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="try-help">
                 </div>
                 <div class="col-md-1">
                   <input type="submit" value="Go!">
                 </div>
               </div>
             </form>
+            <p id="try-help" class="try-help">Enter a Mojang UUID or username, then press Enter to update all previews.</p>
             <p>Try it accepts either a UUID or username. You can also use <a rel="nofollow noopener noreferrer" target="_blank" href="https://minecraftuuid.com">minecraftuuid.com</a> to look up UUIDs manually.</p>
           </section>
 
