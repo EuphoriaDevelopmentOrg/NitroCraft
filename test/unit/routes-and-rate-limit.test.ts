@@ -294,6 +294,9 @@ test("server list builder page renders expected shell", async () => {
   assert.equal(res.statusCode, 200);
   assert.match(String(body), /Server List Builder/i);
   assert.match(String(body), /slb-import-btn/);
+  assert.match(String(body), /href="\/docs"/);
+  assert.match(String(body), /slb-format-target/);
+  assert.match(String(body), /slb-animation-ms/);
 });
 
 test("index route renders multiple sponsor cards and falls back to legacy sponsor fields", async () => {
@@ -331,6 +334,7 @@ test("index route renders multiple sponsor cards and falls back to legacy sponso
     assert.match(String(configuredBody), /class="sponsor-strip"/);
     assert.match(String(configuredBody), /data-pinned="true" data-uuid="d634462bd663401d9788a8596307bc4d"/);
     assert.match(String(configuredBody), /data-pinned="true" data-uuid="15851079f1d24d418207ce9f914e966d"/);
+    assert.match(String(configuredBody), /href="https:\/\/[^"]+\/docs"/);
     assert.match(String(configuredBody), /Support tiers:/);
     assert.match(String(configuredBody), /<strong>\$20<\/strong>\s*Sponsor Spotlight/);
     assert.match(String(configuredBody), /href="https:\/\/sponsor-a\.example\.com\/click"/);

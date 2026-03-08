@@ -232,6 +232,7 @@ export default defineEventHandler((event) => {
           <a class="quick-link" data-template="${safeDomain}/players/$" href="${safeDomain}/players/${featuredUuid}" target="_blank" rel="noopener noreferrer">Open Player JSON</a>
           <a class="quick-link" href="${safeDomain}/tools/server-list">Server List Builder</a>
           <a class="quick-link" href="${safeDomain}/openapi.json">OpenAPI</a>
+          <a class="quick-link" href="${safeDomain}/docs">API Docs</a>
         </div>
 
         <div id="support" class="support-strip" aria-label="Support NitroCraft">
@@ -350,6 +351,7 @@ export default defineEventHandler((event) => {
               <li><code>${safeDomain}/format/css</code> - CSS classes for formatting mode</li>
               <li><code>${safeDomain}/tools/server-list</code> - live Minecraft server-list entry simulator</li>
               <li><code>${safeDomain}/openapi.json</code> - OpenAPI schema</li>
+              <li><code>${safeDomain}/docs</code> - interactive API reference (Scalar)</li>
               <li><code>${safeDomain}/metrics</code> - Prometheus metrics endpoint</li>
             </ul>
           </section>
@@ -483,6 +485,7 @@ export default defineEventHandler((event) => {
             <a href="${safeDomain}/renders/head/853c80ef3c3749fdaa49938b674adae6?scale=6&amp;overlay">Live Example</a>
             <a href="${safeDomain}/tools/server-list">Server List Builder</a>
             <a href="${safeDomain}/openapi.json">OpenAPI</a>
+            <a href="${safeDomain}/docs">API Docs</a>
           </span>
         </p>
       </div>

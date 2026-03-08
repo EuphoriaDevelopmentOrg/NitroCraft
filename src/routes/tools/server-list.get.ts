@@ -36,6 +36,7 @@ export default defineEventHandler((event) => {
           <p>Design a Minecraft server list entry and preview it live before shipping your MOTD/config.</p>
           <p class="builder-header-links">
             <a href="/openapi.json" target="_blank" rel="noopener noreferrer">OpenAPI</a>
+            <a href="/docs" target="_blank" rel="noopener noreferrer">API Docs</a>
             <a href="/metrics" target="_blank" rel="noopener noreferrer">Metrics</a>
           </p>
         </header>
@@ -51,6 +52,55 @@ export default defineEventHandler((event) => {
 
             <label for="slb-motd-line2">MOTD Line 2</label>
             <textarea id="slb-motd-line2" rows="2" maxlength="120">§7Avatars, skins, renders, status</textarea>
+
+            <div class="builder-format-tools">
+              <label for="slb-format-target">Formatting Target</label>
+              <select id="slb-format-target">
+                <option value="motdLine1">MOTD Line 1</option>
+                <option value="motdLine2">MOTD Line 2</option>
+              </select>
+
+              <div class="builder-format-grid builder-format-grid-colors" aria-label="Minecraft color codes">
+                <button type="button" class="slb-format-btn" data-slb-insert-code="0">§0 Black</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="1">§1 Dark Blue</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="2">§2 Dark Green</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="3">§3 Dark Aqua</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="4">§4 Dark Red</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="5">§5 Dark Purple</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="6">§6 Gold</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="7">§7 Gray</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="8">§8 Dark Gray</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="9">§9 Blue</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="a">§a Green</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="b">§b Aqua</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="c">§c Red</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="d">§d Light Purple</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="e">§e Yellow</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="f">§f White</button>
+              </div>
+
+              <div class="builder-format-grid builder-format-grid-modes" aria-label="Minecraft formatting codes">
+                <button type="button" class="slb-format-btn" data-slb-insert-code="l">§l Bold</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="o">§o Italic</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="n">§n Underline</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="m">§m Strikethrough</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="k">§k Obfuscated</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="r">§r Reset</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-text=" || ">Insert Frame Separator (||)</button>
+              </div>
+
+              <div class="builder-format-grid builder-format-grid-templates" aria-label="MOTD animation templates">
+                <button type="button" class="slb-format-btn" data-slb-template="rainbow">Template: Rainbow Cycle</button>
+                <button type="button" class="slb-format-btn" data-slb-template="pulse">Template: Alert Pulse</button>
+                <button type="button" class="slb-format-btn" data-slb-template="status">Template: Status Cycle</button>
+              </div>
+
+              <label for="slb-animation-ms">Animation Speed (ms per frame)</label>
+              <input id="slb-animation-ms" type="number" min="120" max="5000" step="10" value="700">
+
+              <p class="builder-note">Tip: use <code>||</code> in a MOTD line to create animated frames in the preview.</p>
+              <p id="slb-format-status" class="builder-note"></p>
+            </div>
 
             <div class="builder-row">
               <div>

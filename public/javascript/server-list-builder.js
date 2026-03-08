@@ -3,6 +3,7 @@
     serverName: "NitroCraft Network",
     motdLine1: "\u00a7bNitroCraft \u00a77| \u00a7aFast API",
     motdLine2: "\u00a77Avatars, skins, renders, status",
+    animationMs: 700,
     online: 24,
     max: 250,
     version: "1.21.x",
@@ -14,6 +15,7 @@
     serverName: document.querySelector("#slb-server-name"),
     motdLine1: document.querySelector("#slb-motd-line1"),
     motdLine2: document.querySelector("#slb-motd-line2"),
+    animationMs: document.querySelector("#slb-animation-ms"),
     online: document.querySelector("#slb-online"),
     max: document.querySelector("#slb-max"),
     version: document.querySelector("#slb-version"),
@@ -26,6 +28,10 @@
     importBtn: document.querySelector("#slb-import-btn"),
     importStatus: document.querySelector("#slb-import-status"),
     iconStatus: document.querySelector("#slb-icon-status"),
+    formatTarget: document.querySelector("#slb-format-target"),
+    formatStatus: document.querySelector("#slb-format-status"),
+    formatInsertButtons: document.querySelectorAll("[data-slb-insert-code], [data-slb-insert-text]"),
+    formatTemplateButtons: document.querySelectorAll("[data-slb-template]"),
     shareUrl: document.querySelector("#slb-share-url"),
     copyShare: document.querySelector("#slb-copy-share"),
     reset: document.querySelector("#slb-reset")
@@ -47,7 +53,15 @@
 
   var state = Object.assign({}, defaults);
   var motdRenderTimer = null;
+  var motdCycleTimer = null;
   var motdRenderToken = 0;
+  var motdHtmlCache = Object.create(null);
+
+  var motdTemplates = {
+    rainbow: "\u00a7cN\u00a76i\u00aet\u00a7ar\u00a7bo\u00a7dC\u00a75r\u00a79a\u00a7af\u00a7bt || \u00a7fNitroCraft",
+    pulse: "\u00a7c[SALE] || \u00a7e[SALE] || \u00a7a[SALE]",
+    status: "\u00a7aOnline || \u00a7eRestarting Soon || \u00a7cMaintenance"
+  };
 
   function clampNumber(value, fallback, min, max) {
     var parsed = Number.parseInt(String(value || ""), 10);
@@ -92,6 +106,9 @@
     if (params.has("m2")) {
       state.motdLine2 = params.get("m2") || "";
     }
+    if (params.has("am")) {
+      state.animationMs = clampNumber(params.get("am"), defaults.animationMs, 120, 5000);
+    }
     if (params.has("o")) {
       state.online = clampNumber(params.get("o"), defaults.online, 0, 999999);
     }
@@ -113,6 +130,9 @@
     controls.serverName.value = state.serverName;
     controls.motdLine1.value = state.motdLine1;
     controls.motdLine2.value = state.motdLine2;
+    if (controls.animationMs) {
+      controls.animationMs.value = String(state.animationMs);
+    }
     controls.online.value = String(state.online);
     controls.max.value = String(state.max);
     controls.version.value = state.version;
@@ -124,6 +144,7 @@
     state.serverName = String(controls.serverName.value || "").slice(0, 64);
     state.motdLine1 = String(controls.motdLine1.value || "").slice(0, 120);
     state.motdLine2 = String(controls.motdLine2.value || "").slice(0, 120);
+    state.animationMs = clampNumber(controls.animationMs ? controls.animationMs.value : defaults.animationMs, defaults.animationMs, 120, 5000);
     state.online = clampNumber(controls.online.value, defaults.online, 0, 999999);
     state.max = clampNumber(controls.max.value, defaults.max, 1, 999999);
     state.version = String(controls.version.value || "").slice(0, 32);
@@ -143,7 +164,48 @@
     target.setAttribute("data-bars", String(level));
   }
 
+  function clearMotdCycleTimer() {
+    if (!motdCycleTimer) {
+      return;
+    }
+    window.clearInterval(motdCycleTimer);
+    motdCycleTimer = null;
+  }
+
+  function splitMotdFrames(value) {
+    var raw = String(value || "");
+    if (!raw.includes("||")) {
+      return [raw];
+    }
+
+    var frames = raw.split("||").map(function(part) {
+      return part.trim();
+    }).filter(function(part) {
+      return part.length > 0;
+    });
+
+    return frames.length ? frames : [raw];
+  }
+
+  function expandFrameList(values, frameCount) {
+    var expanded = [];
+    if (!values.length) {
+      values = [""];
+    }
+
+    for (var i = 0; i < frameCount; i++) {
+      var index = i < values.length ? i : values.length - 1;
+      expanded.push(values[index]);
+    }
+    return expanded;
+  }
+
   function fetchMotdHtml(text) {
+    var key = String(text || "");
+    if (Object.prototype.hasOwnProperty.call(motdHtmlCache, key)) {
+      return Promise.resolve(motdHtmlCache[key]);
+    }
+
     return fetch("/format/html?text=" + encodeURIComponent(text), {
       cache: "no-store"
     }).then(function(response) {
@@ -153,23 +215,53 @@
       return response.json();
     }).then(function(payload) {
       if (payload && typeof payload.html === "string") {
+        motdHtmlCache[key] = payload.html;
         return payload.html;
       }
-      return escapeHtml(text);
+      var safe = escapeHtml(text);
+      motdHtmlCache[key] = safe;
+      return safe;
     });
   }
 
   function renderMotd() {
     var token = ++motdRenderToken;
-    Promise.all([
-      fetchMotdHtml(state.motdLine1),
-      fetchMotdHtml(state.motdLine2)
-    ]).then(function(parts) {
+    clearMotdCycleTimer();
+
+    var line1Frames = splitMotdFrames(state.motdLine1);
+    var line2Frames = splitMotdFrames(state.motdLine2);
+    var frameCount = Math.max(line1Frames.length, line2Frames.length);
+    var expandedLine1 = expandFrameList(line1Frames, frameCount);
+    var expandedLine2 = expandFrameList(line2Frames, frameCount);
+
+    var requests = expandedLine1.map(fetchMotdHtml).concat(expandedLine2.map(fetchMotdHtml));
+
+    Promise.all(requests).then(function(parts) {
       if (token !== motdRenderToken) {
         return;
       }
-      preview.motdLine1.innerHTML = parts[0] || "&nbsp;";
-      preview.motdLine2.innerHTML = parts[1] || "&nbsp;";
+
+      var line1HtmlFrames = parts.slice(0, frameCount);
+      var line2HtmlFrames = parts.slice(frameCount);
+      var currentFrame = 0;
+
+      var applyFrame = function(index) {
+        preview.motdLine1.innerHTML = line1HtmlFrames[index] || "&nbsp;";
+        preview.motdLine2.innerHTML = line2HtmlFrames[index] || "&nbsp;";
+      };
+
+      applyFrame(0);
+
+      if (frameCount > 1) {
+        motdCycleTimer = window.setInterval(function() {
+          if (token !== motdRenderToken) {
+            clearMotdCycleTimer();
+            return;
+          }
+          currentFrame = (currentFrame + 1) % frameCount;
+          applyFrame(currentFrame);
+        }, state.animationMs);
+      }
     }).catch(function() {
       if (token !== motdRenderToken) {
         return;
@@ -191,6 +283,7 @@
     params.set("n", state.serverName);
     params.set("m1", state.motdLine1);
     params.set("m2", state.motdLine2);
+    params.set("am", String(state.animationMs));
     params.set("o", String(state.online));
     params.set("x", String(state.max));
     params.set("v", state.version);
@@ -260,6 +353,54 @@
       context.drawImage(img, 0, 0, 64, 64);
       return canvas.toDataURL("image/png");
     });
+  }
+
+  function resolveFormatTargetInput() {
+    var target = controls.formatTarget ? String(controls.formatTarget.value || "motdLine1") : "motdLine1";
+    if (target === "motdLine2") {
+      return controls.motdLine2;
+    }
+    return controls.motdLine1;
+  }
+
+  function insertIntoActiveMotd(insertText) {
+    var input = resolveFormatTargetInput();
+    if (!input) {
+      return;
+    }
+
+    var start = Number.isFinite(input.selectionStart) ? input.selectionStart : input.value.length;
+    var end = Number.isFinite(input.selectionEnd) ? input.selectionEnd : input.value.length;
+    var before = input.value.slice(0, start);
+    var after = input.value.slice(end);
+
+    input.value = before + insertText + after;
+    var nextPos = start + insertText.length;
+    input.focus();
+    if (input.setSelectionRange) {
+      input.setSelectionRange(nextPos, nextPos);
+    }
+
+    readStateFromControls();
+    updatePreview();
+    setNote(controls.formatStatus, "Inserted formatting code.", false);
+  }
+
+  function applyMotdTemplate(name) {
+    var template = motdTemplates[name];
+    if (!template) {
+      return;
+    }
+
+    var input = resolveFormatTargetInput();
+    if (!input) {
+      return;
+    }
+
+    input.value = template;
+    readStateFromControls();
+    updatePreview();
+    setNote(controls.formatStatus, "Template applied to selected line.", false);
   }
 
   function readImportPayload(statusPayload, address) {
@@ -453,6 +594,12 @@
     readStateFromControls();
     updatePreview();
   });
+  if (controls.animationMs) {
+    controls.animationMs.addEventListener("input", function() {
+      readStateFromControls();
+      updatePreview();
+    });
+  }
   controls.online.addEventListener("input", function() {
     readStateFromControls();
     updatePreview();
@@ -492,6 +639,34 @@
         setNote(controls.iconStatus, "Could not load this icon file.", true);
       });
   });
+
+  if (controls.formatInsertButtons && controls.formatInsertButtons.length) {
+    for (var i = 0; i < controls.formatInsertButtons.length; i++) {
+      controls.formatInsertButtons[i].addEventListener("click", function() {
+        var code = this.getAttribute("data-slb-insert-code");
+        var text = this.getAttribute("data-slb-insert-text");
+        if (code) {
+          insertIntoActiveMotd("\u00a7" + code);
+          return;
+        }
+        if (text) {
+          insertIntoActiveMotd(text);
+        }
+      });
+    }
+  }
+
+  if (controls.formatTemplateButtons && controls.formatTemplateButtons.length) {
+    for (var j = 0; j < controls.formatTemplateButtons.length; j++) {
+      controls.formatTemplateButtons[j].addEventListener("click", function() {
+        var templateName = this.getAttribute("data-slb-template");
+        if (!templateName) {
+          return;
+        }
+        applyMotdTemplate(templateName);
+      });
+    }
+  }
 
   controls.importBtn.addEventListener("click", importFromServer);
   controls.copyShare.addEventListener("click", copyShareUrl);

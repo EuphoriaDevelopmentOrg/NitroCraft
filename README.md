@@ -31,7 +31,7 @@ NitroCraft is a Minecraft avatar/render API built on Nitro and `minecraft-toolki
 - Short-TTL + in-flight deduplicated status probe caching for `/status/*` endpoints
 - Configurable outbound Mojang session rate limiting (`SESSIONS_RATE_LIMIT`)
 - Optional inbound per-IP request rate limiting (`REQUESTS_RATE_LIMIT`)
-- OpenAPI schema (`/openapi.json`) and Prometheus metrics (`/metrics`)
+- OpenAPI schema (`/openapi.json`), hosted API docs (`/docs`), and Prometheus metrics (`/metrics`)
 - Interactive server-list simulator (`/tools/server-list`) with import/share flow
 - Nitro runtime with `pnpm` workflows
 
@@ -70,6 +70,7 @@ NitroCraft is a Minecraft avatar/render API built on Nitro and `minecraft-toolki
 
 - `GET /tools/server-list`
 - `GET /openapi.json`
+- `GET /docs`
 - `GET /metrics`
 
 ## Getting Started
