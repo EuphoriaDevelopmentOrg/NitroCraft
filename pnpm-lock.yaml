@@ -18,8 +18,8 @@ importers:
         specifier: ^16.6.1
         version: 16.6.1
       minecraft-toolkit:
-        specifier: ^0.1.4
-        version: 0.1.4
+        specifier: ^1.0.0
+        version: 1.0.0
       nitropack:
         specifier: ^2.13.1
         version: 2.13.1
@@ -1469,8 +1469,8 @@ packages:
     resolution: {integrity: sha512-z0yWI+4FDrrweS8Zmt4Ej5HdJmky15+L2e6Wgn3+iK5fWzb6T3fhNFq2+MeTRb064c6Wr4N/wv0DzQTjNzHNGQ==}
     engines: {node: '>=10'}
 
-  minecraft-toolkit@0.1.4:
-    resolution: {integrity: sha512-hkKJ7X3G0cFN2gZOjpXTtceFRV1mQFhZHKAK2thYdIYyzlTDzvk/vSo30cEetJg02Ha+KCTc1bkdjatPBW6T4Q==}
+  minecraft-toolkit@1.0.0:
+    resolution: {integrity: sha512-+4SVl0zD1rwSAjLlvalCNg7ye96EY5lOZJs6gkqkFp84rg0NdS87AiFUBJVeDbgPSXJfECmLvPXYp0D0n+zswg==}
     engines: {node: '>=18'}
 
   minimatch@10.2.4:
@@ -3402,7 +3402,7 @@ snapshots:
 
   mimic-response@3.1.0: {}
 
-  minecraft-toolkit@0.1.4:
+  minecraft-toolkit@1.0.0:
     dependencies:
       h3: 2.0.1-rc.14
       pngjs: 7.0.0
