@@ -236,7 +236,7 @@ export default defineEventHandler((event) => {
 
         <div id="support" class="support-strip" aria-label="Support NitroCraft">
           <span class="support-strip-label">Support NitroCraft:</span>
-          <a href="https://github.com/sponsors/RepGraphics" target="_blank" rel="noopener noreferrer">
+          <a href="https://github.com/sponsors/EuphoriaDevelopmentOrg" target="_blank" rel="noopener noreferrer">
             <img src="https://img.shields.io/badge/GitHub%20Sponsors-Support-181717?logo=githubsponsors&logoColor=white" alt="Support via GitHub Sponsors" width="173" height="20" loading="lazy" decoding="async">
           </a>
           <a href="https://www.paypal.me/repgraphics" target="_blank" rel="noopener noreferrer">

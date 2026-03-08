@@ -172,9 +172,9 @@ Create a `.env` file and configure the following values.
 
 If NitroCraft helps your projects, you can support ongoing development here:
 
-[![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-Support-181717?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/RepGraphics)
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-Support-181717?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/EuphoriaDevelopmentOrg)
 
-- GitHub Sponsors: [github.com/sponsors/RepGraphics](https://github.com/sponsors/RepGraphics)
+- GitHub Sponsors: [github.com/sponsors/EuphoriaDevelopmentOrg](https://github.com/sponsors/EuphoriaDevelopmentOrg)
 
 ### Supporter Tiers
 
