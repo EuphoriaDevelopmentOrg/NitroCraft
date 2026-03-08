@@ -10,7 +10,7 @@ export default defineNitroConfig({
   openAPI: {
     // Keep docs available in prod builds.
     production: "runtime",
-    // Leave generated spec on internal route and keep custom /openapi.json intact.
+    // Use Nitro-generated spec route.
     route: "/_openapi.json",
     meta: {
       title: "NitroCraft API",
@@ -19,10 +19,10 @@ export default defineNitroConfig({
     ui: {
       scalar: {
         route: "/docs",
-        // Point Scalar UI at the richer hand-authored schema route.
-        url: "/openapi.json",
+        // Use Nitro-generated OpenAPI document for docs.
+        url: "/_openapi.json",
         spec: {
-          url: "/openapi.json",
+          url: "/_openapi.json",
         },
       },
       swagger: false,

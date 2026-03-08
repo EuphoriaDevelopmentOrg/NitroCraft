@@ -35,7 +35,6 @@ export default defineEventHandler((event) => {
           <h1>Server List Builder</h1>
           <p>Design a Minecraft server list entry and preview it live before shipping your MOTD/config.</p>
           <p class="builder-header-links">
-            <a href="/openapi.json" target="_blank" rel="noopener noreferrer">OpenAPI</a>
             <a href="/docs" target="_blank" rel="noopener noreferrer">API Docs</a>
             <a href="/metrics" target="_blank" rel="noopener noreferrer">Metrics</a>
           </p>
@@ -48,44 +47,41 @@ export default defineEventHandler((event) => {
             <input id="slb-server-name" type="text" maxlength="64" value="NitroCraft Network" autocomplete="off">
 
             <label for="slb-motd-line1">MOTD Line 1</label>
-            <textarea id="slb-motd-line1" rows="2" maxlength="120">§bNitroCraft §7| §aFast API</textarea>
+            <textarea id="slb-motd-line1" rows="2" maxlength="120">&#167;bNitroCraft &#167;7| &#167;aFast API || &#167;3NitroCraft &#167;7| &#167;eFast API || &#167;dNitroCraft &#167;7| &#167;bFast API</textarea>
 
             <label for="slb-motd-line2">MOTD Line 2</label>
-            <textarea id="slb-motd-line2" rows="2" maxlength="120">§7Avatars, skins, renders, status</textarea>
+            <textarea id="slb-motd-line2" rows="2" maxlength="120">&#167;7Avatars, skins, renders, status</textarea>
 
             <div class="builder-format-tools">
-              <label for="slb-format-target">Formatting Target</label>
-              <select id="slb-format-target">
-                <option value="motdLine1">MOTD Line 1</option>
-                <option value="motdLine2">MOTD Line 2</option>
-              </select>
+              <p id="slb-active-target" class="builder-note builder-active-target">Active input: MOTD Line 1</p>
+              <p class="builder-note">Click inside a MOTD line, then use these buttons to insert at your cursor.</p>
 
               <div class="builder-format-grid builder-format-grid-colors" aria-label="Minecraft color codes">
-                <button type="button" class="slb-format-btn" data-slb-insert-code="0">§0 Black</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="1">§1 Dark Blue</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="2">§2 Dark Green</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="3">§3 Dark Aqua</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="4">§4 Dark Red</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="5">§5 Dark Purple</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="6">§6 Gold</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="7">§7 Gray</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="8">§8 Dark Gray</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="9">§9 Blue</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="a">§a Green</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="b">§b Aqua</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="c">§c Red</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="d">§d Light Purple</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="e">§e Yellow</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="f">§f White</button>
+                <button type="button" class="slb-format-btn slb-format-btn-color" data-slb-insert-code="0" title="Insert &#167;0 (Black)">Black</button>
+                <button type="button" class="slb-format-btn slb-format-btn-color" data-slb-insert-code="1" title="Insert &#167;1 (Dark Blue)">Dark Blue</button>
+                <button type="button" class="slb-format-btn slb-format-btn-color" data-slb-insert-code="2" title="Insert &#167;2 (Dark Green)">Dark Green</button>
+                <button type="button" class="slb-format-btn slb-format-btn-color" data-slb-insert-code="3" title="Insert &#167;3 (Dark Aqua)">Dark Aqua</button>
+                <button type="button" class="slb-format-btn slb-format-btn-color" data-slb-insert-code="4" title="Insert &#167;4 (Dark Red)">Dark Red</button>
+                <button type="button" class="slb-format-btn slb-format-btn-color" data-slb-insert-code="5" title="Insert &#167;5 (Dark Purple)">Dark Purple</button>
+                <button type="button" class="slb-format-btn slb-format-btn-color" data-slb-insert-code="6" title="Insert &#167;6 (Gold)">Gold</button>
+                <button type="button" class="slb-format-btn slb-format-btn-color" data-slb-insert-code="7" title="Insert &#167;7 (Gray)">Gray</button>
+                <button type="button" class="slb-format-btn slb-format-btn-color" data-slb-insert-code="8" title="Insert &#167;8 (Dark Gray)">Dark Gray</button>
+                <button type="button" class="slb-format-btn slb-format-btn-color" data-slb-insert-code="9" title="Insert &#167;9 (Blue)">Blue</button>
+                <button type="button" class="slb-format-btn slb-format-btn-color" data-slb-insert-code="a" title="Insert &#167;a (Green)">Green</button>
+                <button type="button" class="slb-format-btn slb-format-btn-color" data-slb-insert-code="b" title="Insert &#167;b (Aqua)">Aqua</button>
+                <button type="button" class="slb-format-btn slb-format-btn-color" data-slb-insert-code="c" title="Insert &#167;c (Red)">Red</button>
+                <button type="button" class="slb-format-btn slb-format-btn-color" data-slb-insert-code="d" title="Insert &#167;d (Light Purple)">Light Purple</button>
+                <button type="button" class="slb-format-btn slb-format-btn-color" data-slb-insert-code="e" title="Insert &#167;e (Yellow)">Yellow</button>
+                <button type="button" class="slb-format-btn slb-format-btn-color" data-slb-insert-code="f" title="Insert &#167;f (White)">White</button>
               </div>
 
               <div class="builder-format-grid builder-format-grid-modes" aria-label="Minecraft formatting codes">
-                <button type="button" class="slb-format-btn" data-slb-insert-code="l">§l Bold</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="o">§o Italic</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="n">§n Underline</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="m">§m Strikethrough</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="k">§k Obfuscated</button>
-                <button type="button" class="slb-format-btn" data-slb-insert-code="r">§r Reset</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="l" title="Insert &#167;l">Bold</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="o" title="Insert &#167;o">Italic</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="n" title="Insert &#167;n">Underline</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="m" title="Insert &#167;m">Strikethrough</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="k" title="Insert &#167;k">Obfuscated</button>
+                <button type="button" class="slb-format-btn" data-slb-insert-code="r" title="Insert &#167;r">Reset</button>
                 <button type="button" class="slb-format-btn" data-slb-insert-text=" || ">Insert Frame Separator (||)</button>
               </div>
 

@@ -227,11 +227,7 @@ export default defineEventHandler((event) => {
         </nav>
 
         <div class="quick-links" aria-label="Quick links">
-          <a class="quick-link" data-template="${safeDomain}/avatars/$?size=128&amp;overlay" href="${safeDomain}/avatars/${featuredUuid}?size=128&amp;overlay" target="_blank" rel="noopener noreferrer">Open Avatar</a>
-          <a class="quick-link" data-template="${safeDomain}/renders/head/$?scale=8&amp;overlay" href="${safeDomain}/renders/head/${featuredUuid}?scale=8&amp;overlay" target="_blank" rel="noopener noreferrer">Open Head Render</a>
-          <a class="quick-link" data-template="${safeDomain}/players/$" href="${safeDomain}/players/${featuredUuid}" target="_blank" rel="noopener noreferrer">Open Player JSON</a>
           <a class="quick-link" href="${safeDomain}/tools/server-list">Server List Builder</a>
-          <a class="quick-link" href="${safeDomain}/openapi.json">OpenAPI</a>
           <a class="quick-link" href="${safeDomain}/docs">API Docs</a>
         </div>
 
@@ -350,7 +346,6 @@ export default defineEventHandler((event) => {
               <li><code>${safeDomain}/format/strip?text=%C2%A7aWelcome%20%C2%A7lHero</code> - strip formatting codes</li>
               <li><code>${safeDomain}/format/css</code> - CSS classes for formatting mode</li>
               <li><code>${safeDomain}/tools/server-list</code> - live Minecraft server-list entry simulator</li>
-              <li><code>${safeDomain}/openapi.json</code> - OpenAPI schema</li>
               <li><code>${safeDomain}/docs</code> - interactive API reference (Scalar)</li>
               <li><code>${safeDomain}/metrics</code> - Prometheus metrics endpoint</li>
             </ul>
@@ -358,7 +353,7 @@ export default defineEventHandler((event) => {
 
           <section id="sdk-snippet">
             <h2><a href="#sdk-snippet">SDK Snippet Generator</a></h2>
-            <p>Pick an endpoint and language to generate a starter request snippet. Full API metadata is available at <code>${safeDomain}/openapi.json</code>.</p>
+            <p>Pick an endpoint and language to generate a starter request snippet. Interactive docs are available at <code>${safeDomain}/docs</code>.</p>
             <div class="sdk-controls">
               <div>
                 <label for="sdk-endpoint">Endpoint</label>
@@ -484,7 +479,6 @@ export default defineEventHandler((event) => {
             <a href="${safeDomain}/status/mc">Service Status</a>
             <a href="${safeDomain}/renders/head/853c80ef3c3749fdaa49938b674adae6?scale=6&amp;overlay">Live Example</a>
             <a href="${safeDomain}/tools/server-list">Server List Builder</a>
-            <a href="${safeDomain}/openapi.json">OpenAPI</a>
             <a href="${safeDomain}/docs">API Docs</a>
           </span>
         </p>

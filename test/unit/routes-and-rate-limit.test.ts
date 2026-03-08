@@ -295,7 +295,7 @@ test("server list builder page renders expected shell", async () => {
   assert.match(String(body), /Server List Builder/i);
   assert.match(String(body), /slb-import-btn/);
   assert.match(String(body), /href="\/docs"/);
-  assert.match(String(body), /slb-format-target/);
+  assert.match(String(body), /slb-active-target/);
   assert.match(String(body), /slb-animation-ms/);
 });
 

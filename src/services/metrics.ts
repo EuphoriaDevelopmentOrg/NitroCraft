@@ -82,7 +82,7 @@ function observeHistogram(
   const current = store.get(key);
   const point = current || {
     labels,
-    buckets: new Array(bucketUpperBounds.length).fill(0),
+    buckets: Array.from({ length: bucketUpperBounds.length }, () => 0),
     count: 0,
     sum: 0,
   };

@@ -29,7 +29,7 @@ fetch("/status/mc", { cache: "no-store" }).then(function(r) {
   }
 }).catch(function() {});
 
-document.addEventListener("DOMContentLoaded", function(event) {
+document.addEventListener("DOMContentLoaded", function() {
   var avatars = document.querySelector("#avatar-wrapper");
   var avatarPickers = [];
   var pinnedAvatarPickers = [];

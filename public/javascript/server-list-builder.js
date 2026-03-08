@@ -1,7 +1,7 @@
 (function() {
   var defaults = {
     serverName: "NitroCraft Network",
-    motdLine1: "\u00a7bNitroCraft \u00a77| \u00a7aFast API",
+    motdLine1: "\u00a7bNitroCraft \u00a77| \u00a7aFast API || \u00a73NitroCraft \u00a77| \u00a7eFast API || \u00a7dNitroCraft \u00a77| \u00a7bFast API",
     motdLine2: "\u00a77Avatars, skins, renders, status",
     animationMs: 700,
     online: 24,
@@ -28,7 +28,7 @@
     importBtn: document.querySelector("#slb-import-btn"),
     importStatus: document.querySelector("#slb-import-status"),
     iconStatus: document.querySelector("#slb-icon-status"),
-    formatTarget: document.querySelector("#slb-format-target"),
+    activeTarget: document.querySelector("#slb-active-target"),
     formatStatus: document.querySelector("#slb-format-status"),
     formatInsertButtons: document.querySelectorAll("[data-slb-insert-code], [data-slb-insert-text]"),
     formatTemplateButtons: document.querySelectorAll("[data-slb-template]"),
@@ -56,6 +56,7 @@
   var motdCycleTimer = null;
   var motdRenderToken = 0;
   var motdHtmlCache = Object.create(null);
+  var activeMotdInput = null;
 
   var motdTemplates = {
     rainbow: "\u00a7cN\u00a76i\u00aet\u00a7ar\u00a7bo\u00a7dC\u00a75r\u00a79a\u00a7af\u00a7bt || \u00a7fNitroCraft",
@@ -93,6 +94,58 @@
     element.textContent = message || "";
     element.classList.toggle("is-error", Boolean(isError && message));
     element.classList.toggle("is-ok", Boolean(!isError && message));
+  }
+
+  function motdInputLabel(input) {
+    if (input === controls.motdLine2) {
+      return "MOTD Line 2";
+    }
+    return "MOTD Line 1";
+  }
+
+  function setActiveTargetNote(input) {
+    if (!controls.activeTarget) {
+      return;
+    }
+    controls.activeTarget.textContent = "Active input: " + motdInputLabel(input);
+  }
+
+  function rememberSelection(input) {
+    if (!input) {
+      return;
+    }
+    var start = Number.isFinite(input.selectionStart) ? input.selectionStart : input.value.length;
+    var end = Number.isFinite(input.selectionEnd) ? input.selectionEnd : start;
+    input.setAttribute("data-slb-selection-start", String(start));
+    input.setAttribute("data-slb-selection-end", String(end));
+  }
+
+  function readStoredSelection(input) {
+    var start = Number.parseInt(input.getAttribute("data-slb-selection-start") || "", 10);
+    var end = Number.parseInt(input.getAttribute("data-slb-selection-end") || "", 10);
+    var valueLength = input.value.length;
+    if (!Number.isFinite(start) || start < 0) {
+      start = valueLength;
+    }
+    if (!Number.isFinite(end) || end < start) {
+      end = start;
+    }
+    if (start > valueLength) {
+      start = valueLength;
+    }
+    if (end > valueLength) {
+      end = valueLength;
+    }
+    return { start: start, end: end };
+  }
+
+  function setActiveMotdInput(input) {
+    if (input !== controls.motdLine1 && input !== controls.motdLine2) {
+      return;
+    }
+    activeMotdInput = input;
+    rememberSelection(input);
+    setActiveTargetNote(input);
   }
 
   function parseInitialParams() {
@@ -356,21 +409,35 @@
   }
 
   function resolveFormatTargetInput() {
-    var target = controls.formatTarget ? String(controls.formatTarget.value || "motdLine1") : "motdLine1";
-    if (target === "motdLine2") {
-      return controls.motdLine2;
+    var focused = document.activeElement;
+    if (focused === controls.motdLine1 || focused === controls.motdLine2) {
+      setActiveMotdInput(focused);
+      return focused;
+    }
+    if (activeMotdInput === controls.motdLine1 || activeMotdInput === controls.motdLine2) {
+      return activeMotdInput;
     }
     return controls.motdLine1;
   }
 
-  function insertIntoActiveMotd(insertText) {
+  function insertIntoActiveMotd(insertText, successMessage) {
     var input = resolveFormatTargetInput();
     if (!input) {
       return;
     }
 
-    var start = Number.isFinite(input.selectionStart) ? input.selectionStart : input.value.length;
-    var end = Number.isFinite(input.selectionEnd) ? input.selectionEnd : input.value.length;
+    var isFocused = document.activeElement === input;
+    var start = input.value.length;
+    var end = input.value.length;
+    if (isFocused && Number.isFinite(input.selectionStart) && Number.isFinite(input.selectionEnd)) {
+      start = input.selectionStart;
+      end = input.selectionEnd;
+    } else {
+      var storedSelection = readStoredSelection(input);
+      start = storedSelection.start;
+      end = storedSelection.end;
+    }
+
     var before = input.value.slice(0, start);
     var after = input.value.slice(end);
 
@@ -380,10 +447,15 @@
     if (input.setSelectionRange) {
       input.setSelectionRange(nextPos, nextPos);
     }
+    setActiveMotdInput(input);
 
     readStateFromControls();
     updatePreview();
-    setNote(controls.formatStatus, "Inserted formatting code.", false);
+    setNote(
+      controls.formatStatus,
+      successMessage || ("Inserted into " + motdInputLabel(input) + "."),
+      false
+    );
   }
 
   function applyMotdTemplate(name) {
@@ -391,16 +463,10 @@
     if (!template) {
       return;
     }
-
-    var input = resolveFormatTargetInput();
-    if (!input) {
-      return;
-    }
-
-    input.value = template;
-    readStateFromControls();
-    updatePreview();
-    setNote(controls.formatStatus, "Template applied to selected line.", false);
+    insertIntoActiveMotd(
+      template,
+      "Inserted " + name + " template into " + motdInputLabel(resolveFormatTargetInput()) + "."
+    );
   }
 
   function readImportPayload(statusPayload, address) {
@@ -575,6 +641,7 @@
   function resetBuilder() {
     state = Object.assign({}, defaults);
     writeStateToControls();
+    setActiveMotdInput(controls.motdLine1);
     readStateFromControls();
     setNote(controls.importStatus, "", false);
     setNote(controls.iconStatus, "", false);
@@ -582,15 +649,30 @@
     updatePreview();
   }
 
+  function bindActiveMotdTracking(input) {
+    if (!input) {
+      return;
+    }
+
+    var events = ["focus", "click", "keyup", "select", "input"];
+    for (var i = 0; i < events.length; i++) {
+      input.addEventListener(events[i], function() {
+        setActiveMotdInput(input);
+      });
+    }
+  }
+
   controls.serverName.addEventListener("input", function() {
     readStateFromControls();
     updatePreview();
   });
   controls.motdLine1.addEventListener("input", function() {
+    setActiveMotdInput(controls.motdLine1);
     readStateFromControls();
     updatePreview();
   });
   controls.motdLine2.addEventListener("input", function() {
+    setActiveMotdInput(controls.motdLine2);
     readStateFromControls();
     updatePreview();
   });
@@ -671,9 +753,12 @@
   controls.importBtn.addEventListener("click", importFromServer);
   controls.copyShare.addEventListener("click", copyShareUrl);
   controls.reset.addEventListener("click", resetBuilder);
+  bindActiveMotdTracking(controls.motdLine1);
+  bindActiveMotdTracking(controls.motdLine2);
 
   parseInitialParams();
   writeStateToControls();
+  setActiveMotdInput(controls.motdLine1);
   readStateFromControls();
   updatePreview();
 })();

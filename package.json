@@ -8,6 +8,8 @@
     "build": "nitro build",
     "preview": "nitro preview",
     "start": "node .output/server/index.mjs",
+    "lint": "oxlint . --ignore-path .gitignore --deny-warnings",
+    "lint:fix": "oxlint . --ignore-path .gitignore --fix",
     "test": "tsx --test --test-concurrency=1 test/unit/config-utils.test.ts test/unit/routes-and-rate-limit.test.ts",
     "loadtest": "tsx test/loadtest.ts",
     "audit:security": "pnpm audit --audit-level=high --prod"
@@ -27,6 +29,7 @@
   "devDependencies": {
     "@types/node": "^25.3.5",
     "autocannon": "^8.0.0",
+    "oxlint": "^1.51.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
