@@ -142,6 +142,7 @@ export default defineEventHandler((event) => {
     <link rel="icon" type="image/x-icon" href="/NitroCraft.ico">
     <link rel="apple-touch-icon" href="/NitroCraft.png">
     <link rel="manifest" href="/site.webmanifest">
+    <link rel="stylesheet" href="/stylesheets/fontawesome-local.css">
     <link rel="stylesheet" href="/stylesheets/style.css">
     <meta name="description" content="${metaDescription}">
     <meta name="keywords" content="minecraft, avatar, renders, skins, uuid, nitrocraft">
@@ -194,6 +195,7 @@ export default defineEventHandler((event) => {
           <button type="button" class="avatar-picker is-active" data-uuid="ae795aa86327408e92ab25c8a59f3ba1" title="jomo" aria-label="Use jomo UUID"><span class="avatar jomo"></span></button>
           <button type="button" class="avatar-picker" data-pinned="true" data-uuid="d634462bd663401d9788a8596307bc4d" title="RepGraphics" aria-label="Use RepGraphics UUID"><span class="avatar repgraphics"></span></button>
           <button type="button" class="avatar-picker" data-pinned="true" data-uuid="15851079f1d24d418207ce9f914e966d" title="26bz" aria-label="Use 26bz UUID"><span class="avatar u26bz"></span></button>
+          <button type="button" class="avatar-picker" data-pinned="true" data-uuid="5e23737cc1994b7ab18512ca6bd7da94" title="Connols" aria-label="Use Connols UUID"><span class="avatar connols"></span></button>
           <button type="button" class="avatar-picker" data-uuid="2d5aa9cdaeb049189930461fc9b91cc5" title="jake_0" aria-label="Use jake_0 UUID"><span class="avatar jake_0"></span></button>
           <button type="button" class="avatar-picker" data-uuid="0ea8eca3dbf647cc9d1ac64551ca975c" title="sk89q" aria-label="Use sk89q UUID"><span class="avatar sk89q"></span></button>
           <button type="button" class="avatar-picker" data-uuid="af74a02d19cb445bb07f6866a861f783" title="md_5" aria-label="Use md_5 UUID"><span class="avatar md_5"></span></button>

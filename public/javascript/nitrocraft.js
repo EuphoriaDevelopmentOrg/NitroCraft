@@ -535,6 +535,59 @@ document.addEventListener("DOMContentLoaded", function() {
     sdkSnippetCode.textContent = snippet;
   }
 
+  function setCodeCopyButtonState(button, state) {
+    if (!button) {
+      return;
+    }
+
+    var icon = button.querySelector(".fa-solid");
+    button.classList.remove("is-copied");
+    button.classList.remove("is-error");
+
+    if (state === "copied") {
+      button.classList.add("is-copied");
+      button.setAttribute("aria-label", "Copied endpoint");
+      if (icon) {
+        icon.className = "fa-solid fa-check";
+      }
+      return;
+    }
+
+    if (state === "error") {
+      button.classList.add("is-error");
+      button.setAttribute("aria-label", "Copy failed");
+      if (icon) {
+        icon.className = "fa-solid fa-clipboard";
+      }
+      return;
+    }
+
+    button.setAttribute("aria-label", "Copy endpoint");
+    if (icon) {
+      icon.className = "fa-solid fa-clipboard";
+    }
+  }
+
+  function clearCodeCopyButtonReset(button) {
+    if (!button || !button.dataset) {
+      return;
+    }
+    var existingTimer = Number(button.dataset.resetTimer || "0");
+    if (existingTimer) {
+      window.clearTimeout(existingTimer);
+    }
+    delete button.dataset.resetTimer;
+  }
+
+  function scheduleCodeCopyButtonReset(button) {
+    clearCodeCopyButtonReset(button);
+    var timer = window.setTimeout(function() {
+      setCodeCopyButtonState(button, "idle");
+      clearCodeCopyButtonReset(button);
+    }, 1200);
+    button.dataset.resetTimer = String(timer);
+  }
+
   function setupCodeCopyButtons() {
     for (var c = 0; c < codeBlocks.length; c++) {
       var block = codeBlocks[c];
@@ -547,12 +600,20 @@ document.addEventListener("DOMContentLoaded", function() {
       button.type = "button";
       button.className = "code-copy";
       button.setAttribute("aria-label", "Copy endpoint");
-      button.textContent = "Copy";
+
+      var icon = document.createElement("i");
+      icon.className = "fa-solid fa-clipboard";
+      icon.setAttribute("aria-hidden", "true");
+      button.appendChild(icon);
+
+      setCodeCopyButtonState(button, "idle");
       block.appendChild(button);
 
       button.addEventListener("click", function(e) {
         e.preventDefault();
         var currentButton = this;
+        clearCodeCopyButtonReset(currentButton);
+        setCodeCopyButtonState(currentButton, "idle");
         var source = currentButton.parentNode;
         if (!source) {
           return;
@@ -567,15 +628,11 @@ document.addEventListener("DOMContentLoaded", function() {
           return;
         }
         copyToClipboard(text).then(function() {
-          currentButton.textContent = "Copied";
-          window.setTimeout(function() {
-            currentButton.textContent = "Copy";
-          }, 1200);
+          setCodeCopyButtonState(currentButton, "copied");
+          scheduleCodeCopyButtonReset(currentButton);
         }).catch(function() {
-          currentButton.textContent = "Error";
-          window.setTimeout(function() {
-            currentButton.textContent = "Copy";
-          }, 1200);
+          setCodeCopyButtonState(currentButton, "error");
+          scheduleCodeCopyButtonReset(currentButton);
         });
       });
     }
