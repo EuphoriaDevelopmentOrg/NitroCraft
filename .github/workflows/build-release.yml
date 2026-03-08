@@ -44,11 +44,11 @@ jobs:
           set -euo pipefail
           git fetch --force --tags
 
-          SHOULD_PUBLISH="false"
+          SHOULD_PUBLISH="true"
+          PRERELEASE="false"
 
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             TAG="$INPUT_TAG"
-            SHOULD_PUBLISH="true"
             if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
               git checkout --detach "refs/tags/${TAG}"
             else
@@ -56,16 +56,17 @@ jobs:
             fi
           elif [ "$REF_TYPE" = "tag" ]; then
             TAG="$REF_NAME"
-            SHOULD_PUBLISH="true"
             git checkout --detach "refs/tags/${TAG}"
           else
             TAG="snapshot-${HEAD_SHA::7}"
-            echo "::notice::Branch push detected (${REF_NAME}); building snapshot artifacts with tag ${TAG}."
+            PRERELEASE="true"
+            echo "::notice::Branch push detected (${REF_NAME}); publishing prerelease ${TAG}."
           fi
 
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "should_publish=${SHOULD_PUBLISH}" >> "$GITHUB_OUTPUT"
+          echo "prerelease=${PRERELEASE}" >> "$GITHUB_OUTPUT"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -134,25 +135,14 @@ jobs:
           echo "compose=${COMPOSE_ASSET}" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub Release
-        if: steps.ref.outputs.should_publish == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.ref.outputs.tag }}
           target_commitish: ${{ steps.ref.outputs.commit }}
+          prerelease: ${{ steps.ref.outputs.prerelease == 'true' }}
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: |
-            ${{ steps.pkg.outputs.archive }}
-            ${{ steps.pkg.outputs.sha }}
-            ${{ steps.pkg.outputs.egg }}
-            ${{ steps.pkg.outputs.compose }}
-
-      - name: Upload snapshot artifacts
-        if: steps.ref.outputs.should_publish != 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: nitrocraft-${{ steps.ref.outputs.tag }}-node-server
-          path: |
             ${{ steps.pkg.outputs.archive }}
             ${{ steps.pkg.outputs.sha }}
             ${{ steps.pkg.outputs.egg }}
