@@ -261,7 +261,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
       if (!link || !link.dataset || !link.dataset.template) {
         continue;
       }
-      link.href = link.dataset.template.replace("$", normalized);
+      link.href = link.dataset.template.replaceAll("$", normalized);
     }
   }
 
@@ -353,7 +353,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
     }
     tryname.value = normalized;
     for (var j = 0; j < images.length; j++) {
-      images[j].src = images[j].dataset.src.replace("$", normalized);
+      images[j].src = images[j].dataset.src.replaceAll("$", normalized);
     }
     setActivePicker(normalized);
     updateQuickLinks(normalized);

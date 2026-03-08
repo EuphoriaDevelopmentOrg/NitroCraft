@@ -23,12 +23,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate required secrets
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          DOCKERHUB_REPOSITORY: ${{ secrets.DOCKERHUB_REPOSITORY }}
         shell: bash
         run: |
           set -euo pipefail
-          test -n "${{ secrets.DOCKERHUB_USERNAME }}"
-          test -n "${{ secrets.DOCKERHUB_TOKEN }}"
-          test -n "${{ secrets.DOCKERHUB_REPOSITORY }}"
+          test -n "$DOCKERHUB_USERNAME"
+          test -n "$DOCKERHUB_TOKEN"
+          test -n "$DOCKERHUB_REPOSITORY"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -72,10 +76,12 @@ jobs:
             type=raw,value=${{ steps.version.outputs.version_tag }}
 
       - name: Show tags to publish
+        env:
+          META_TAGS: ${{ steps.meta.outputs.tags }}
         shell: bash
         run: |
           set -euo pipefail
-          echo "${{ steps.meta.outputs.tags }}"
+          printf '%s\n' "$META_TAGS"
 
       - name: Build and push image
         uses: docker/build-push-action@v6

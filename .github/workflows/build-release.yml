@@ -33,6 +33,12 @@ jobs:
 
       - name: Resolve release target
         id: ref
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag || '' }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          HEAD_SHA: ${{ github.sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -40,21 +46,21 @@ jobs:
 
           SHOULD_PUBLISH="false"
 
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TAG="${{ inputs.tag }}"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG="$INPUT_TAG"
             SHOULD_PUBLISH="true"
             if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
               git checkout --detach "refs/tags/${TAG}"
             else
               echo "::notice::Tag ${TAG} does not exist yet. Building current commit and creating tag via release."
             fi
-          elif [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            TAG="${GITHUB_REF_NAME}"
+          elif [ "$REF_TYPE" = "tag" ]; then
+            TAG="$REF_NAME"
             SHOULD_PUBLISH="true"
             git checkout --detach "refs/tags/${TAG}"
           else
-            TAG="snapshot-${GITHUB_SHA::7}"
-            echo "::notice::Branch push detected (${GITHUB_REF_NAME}); building snapshot artifacts with tag ${TAG}."
+            TAG="snapshot-${HEAD_SHA::7}"
+            echo "::notice::Branch push detected (${REF_NAME}); building snapshot artifacts with tag ${TAG}."
           fi
 
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
@@ -87,10 +93,12 @@ jobs:
 
       - name: Package release assets
         id: pkg
+        env:
+          RELEASE_TAG: ${{ steps.ref.outputs.tag }}
         shell: bash
         run: |
           set -euo pipefail
-          TAG="${{ steps.ref.outputs.tag }}"
+          TAG="$RELEASE_TAG"
           STAGE="release-${TAG}"
           mkdir -p "${STAGE}"
           cp -r .output "${STAGE}/.output"
@@ -102,8 +110,28 @@ jobs:
           tar -czf "${ARCHIVE}" -C "${STAGE}" .
           SHA="nitrocraft-${TAG}-node-server.sha256"
           sha256sum "${ARCHIVE}" | awk '{print $1}' > "${SHA}"
+          EGG_SOURCE="pterodactyl egg/egg-nitrocraft.json"
+          COMPOSE_SOURCE="docker-compose.yml"
+
+          if [ ! -f "${EGG_SOURCE}" ]; then
+            echo "::error::Missing ${EGG_SOURCE}"
+            exit 1
+          fi
+
+          if [ ! -f "${COMPOSE_SOURCE}" ]; then
+            echo "::error::Missing ${COMPOSE_SOURCE}"
+            exit 1
+          fi
+
+          EGG_ASSET="nitrocraft-${TAG}-pterodactyl-egg.json"
+          COMPOSE_ASSET="nitrocraft-${TAG}-docker-compose.yml"
+          cp "${EGG_SOURCE}" "${EGG_ASSET}"
+          cp "${COMPOSE_SOURCE}" "${COMPOSE_ASSET}"
+
           echo "archive=${ARCHIVE}" >> "$GITHUB_OUTPUT"
           echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "egg=${EGG_ASSET}" >> "$GITHUB_OUTPUT"
+          echo "compose=${COMPOSE_ASSET}" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub Release
         if: steps.ref.outputs.should_publish == 'true'
@@ -116,6 +144,8 @@ jobs:
           files: |
             ${{ steps.pkg.outputs.archive }}
             ${{ steps.pkg.outputs.sha }}
+            ${{ steps.pkg.outputs.egg }}
+            ${{ steps.pkg.outputs.compose }}
 
       - name: Upload snapshot artifacts
         if: steps.ref.outputs.should_publish != 'true'
@@ -125,3 +155,5 @@ jobs:
           path: |
             ${{ steps.pkg.outputs.archive }}
             ${{ steps.pkg.outputs.sha }}
+            ${{ steps.pkg.outputs.egg }}
+            ${{ steps.pkg.outputs.compose }}

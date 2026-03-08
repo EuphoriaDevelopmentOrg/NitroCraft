@@ -1,0 +1,4 @@
+* @RepGraphics @EuphoriaDevelopmentOrg/maintainers
+
+# Enforce stricter ownership for CI/CD changes.
+/.github/workflows/* @RepGraphics @EuphoriaDevelopmentOrg/maintainers

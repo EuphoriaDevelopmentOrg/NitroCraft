@@ -94,8 +94,13 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Show package location
+        env:
+          IMAGE_OWNER: ${{ steps.vars.outputs.owner }}
+          IMAGE_NAME: ${{ steps.vars.outputs.image }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          REPOSITORY_NAME: ${{ github.event.repository.name }}
         shell: bash
         run: |
           set -euo pipefail
-          echo "Package: ghcr.io/${{ steps.vars.outputs.owner }}/${{ steps.vars.outputs.image }}"
-          echo "Org packages page: https://github.com/orgs/${GITHUB_REPOSITORY_OWNER}/packages?repo_name=${GITHUB_REPOSITORY#*/}"
+          echo "Package: ghcr.io/${IMAGE_OWNER}/${IMAGE_NAME}"
+          echo "Org packages page: https://github.com/orgs/${REPOSITORY_OWNER}/packages?repo_name=${REPOSITORY_NAME}"
