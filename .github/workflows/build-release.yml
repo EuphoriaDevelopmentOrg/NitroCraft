@@ -38,13 +38,23 @@ jobs:
           INPUT_TAG: ${{ inputs.tag || '' }}
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
-          HEAD_SHA: ${{ github.sha }}
         shell: bash
         run: |
           set -euo pipefail
           git fetch --force --tags
 
-          SHOULD_PUBLISH="true"
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          PACKAGE_VERSION="$(echo "$PACKAGE_VERSION" | xargs)"
+          if [ -z "$PACKAGE_VERSION" ]; then
+            echo "::error::package.json version is empty."
+            exit 1
+          fi
+          if [[ ! "$PACKAGE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid package.json version: '$PACKAGE_VERSION'"
+            exit 1
+          fi
+
+          PACKAGE_TAG="v${PACKAGE_VERSION}"
           PRERELEASE="false"
 
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
@@ -58,14 +68,12 @@ jobs:
             TAG="$REF_NAME"
             git checkout --detach "refs/tags/${TAG}"
           else
-            TAG="snapshot-${HEAD_SHA::7}"
-            PRERELEASE="true"
-            echo "::notice::Branch push detected (${REF_NAME}); publishing prerelease ${TAG}."
+            TAG="$PACKAGE_TAG"
+            echo "::notice::Branch push detected (${REF_NAME}); publishing release ${TAG} from package.json."
           fi
 
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          echo "should_publish=${SHOULD_PUBLISH}" >> "$GITHUB_OUTPUT"
           echo "prerelease=${PRERELEASE}" >> "$GITHUB_OUTPUT"
 
       - name: Setup pnpm
