@@ -7,14 +7,6 @@ on:
       - main
     tags:
       - "v*.*.*"
-    paths:
-      - Dockerfile
-      - package.json
-      - pnpm-lock.yaml
-      - src/**
-      - public/**
-      - nitro.config.ts
-      - .github/workflows/docker-package.yml
   workflow_dispatch:
 
 permissions:
@@ -60,7 +52,6 @@ jobs:
 
           echo "owner=$OWNER" >> "$GITHUB_OUTPUT"
           echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "version_tag=v${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
@@ -84,9 +75,6 @@ jobs:
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=${{ steps.vars.outputs.version_tag }}
-            type=raw,value=${{ steps.vars.outputs.version }}
-            type=ref,event=tag
-            type=sha,format=short
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.url=${{ github.server_url }}/${{ github.repository }}

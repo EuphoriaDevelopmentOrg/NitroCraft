@@ -2,6 +2,9 @@ name: Build Release
 
 on:
   push:
+    branches:
+      - master
+      - main
     tags:
       - "v*.*.*"
   workflow_dispatch:
@@ -35,20 +38,28 @@ jobs:
           set -euo pipefail
           git fetch --force --tags
 
+          SHOULD_PUBLISH="false"
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TAG="${{ inputs.tag }}"
+            SHOULD_PUBLISH="true"
             if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
               git checkout --detach "refs/tags/${TAG}"
             else
               echo "::notice::Tag ${TAG} does not exist yet. Building current commit and creating tag via release."
             fi
-          else
+          elif [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             TAG="${GITHUB_REF_NAME}"
+            SHOULD_PUBLISH="true"
             git checkout --detach "refs/tags/${TAG}"
+          else
+            TAG="snapshot-${GITHUB_SHA::7}"
+            echo "::notice::Branch push detected (${GITHUB_REF_NAME}); building snapshot artifacts with tag ${TAG}."
           fi
 
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "should_publish=${SHOULD_PUBLISH}" >> "$GITHUB_OUTPUT"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -95,6 +106,7 @@ jobs:
           echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub Release
+        if: steps.ref.outputs.should_publish == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.ref.outputs.tag }}
@@ -102,5 +114,14 @@ jobs:
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: |
+            ${{ steps.pkg.outputs.archive }}
+            ${{ steps.pkg.outputs.sha }}
+
+      - name: Upload snapshot artifacts
+        if: steps.ref.outputs.should_publish != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nitrocraft-${{ steps.ref.outputs.tag }}-node-server
+          path: |
             ${{ steps.pkg.outputs.archive }}
             ${{ steps.pkg.outputs.sha }}
