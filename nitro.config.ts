@@ -17,14 +17,8 @@ export default defineNitroConfig({
       description: "Minecraft avatars, skins, capes, renders, player lookup, formatting, and server status endpoints.",
     },
     ui: {
-      scalar: {
-        route: "/docs",
-        // Use Nitro-generated OpenAPI document for docs.
-        url: "/_openapi.json",
-        spec: {
-          url: "/_openapi.json",
-        },
-      },
+      // Serve /docs from an app route so we can reliably point Scalar at /openapi.json.
+      scalar: false,
       swagger: false,
     },
   },

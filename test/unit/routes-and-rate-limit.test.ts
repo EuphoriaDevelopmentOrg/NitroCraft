@@ -285,6 +285,30 @@ test("metrics and openapi routes return expected payloads", async () => {
   assert.ok(String(spec.servers[0].url).startsWith("http"));
 });
 
+test("docs route points Scalar to custom openapi schema", async () => {
+  const route = (await import("../../src/routes/docs.get")).default;
+  const originalExternalUrl = config.server.externalUrl;
+  try {
+    (config.server as any).externalUrl = "";
+    const { event, res } = createMockEvent({
+      url: "/docs",
+      headers: {
+        host: "nitrocraft.test",
+        "x-forwarded-proto": "https",
+        "x-forwarded-host": "nitrocraft.test",
+      },
+    });
+
+    const body = await route(event);
+    assert.equal(res.statusCode, 200);
+    assert.match(String(body), /NitroCraft API Docs/i);
+    assert.match(String(body), /id="api-reference"/);
+    assert.match(String(body), /https:\/\/nitrocraft\.test\/openapi\.json/);
+  } finally {
+    (config.server as any).externalUrl = originalExternalUrl;
+  }
+});
+
 test("server list builder page renders expected shell", async () => {
   const route = (await import("../../src/routes/tools/server-list.get")).default;
   const { event, res } = createMockEvent({
