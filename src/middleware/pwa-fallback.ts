@@ -3,23 +3,28 @@ export default defineEventHandler((event) => {
 
   if (path === "/sw.js") {
     const script = `
-const CACHE_NAME = "nitrocraft-shell-v2";
+const CACHE_NAME = "nitrocraft-shell-v3";
+const OFFLINE_FALLBACK = "/offline.html";
 const APP_SHELL = [
   "/",
+  "/docs",
   "/tools/server-list",
+  OFFLINE_FALLBACK,
   "/site.webmanifest",
   "/stylesheets/style.css",
+  "/stylesheets/fontawesome-local.css",
   "/javascript/nitrocraft.js",
   "/javascript/server-list-builder.js",
   "/NitroCraft-320.png",
   "/NitroCraft.ico",
   "/NitroCraft.png",
   "/icons/icon-192.png",
-  "/icons/icon-512.png"
+  "/icons/icon-512.png",
+  "/vendor/fontawesome/webfonts/fa-solid-900.woff2"
 ];
 
 function isCacheableStaticAsset(url) {
-  if (url.pathname === "/" || url.pathname === "/site.webmanifest") {
+  if (url.pathname === "/" || url.pathname === "/site.webmanifest" || url.pathname === OFFLINE_FALLBACK) {
     return true;
   }
   return (
@@ -27,6 +32,7 @@ function isCacheableStaticAsset(url) {
     url.pathname.startsWith("/javascript/") ||
     url.pathname.startsWith("/images/") ||
     url.pathname.startsWith("/icons/") ||
+    url.pathname.startsWith("/vendor/") ||
     url.pathname === "/NitroCraft-320.png" ||
     url.pathname === "/NitroCraft.ico" ||
     url.pathname === "/NitroCraft.png"
@@ -69,11 +75,21 @@ self.addEventListener("fetch", (event) => {
       fetch(request)
         .then((response) => {
           if (response && response.ok) {
-            caches.open(CACHE_NAME).then((cache) => cache.put("/", response.clone()));
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, response.clone());
+              if (url.pathname === "/") {
+                cache.put("/", response.clone());
+              }
+            });
           }
           return response;
         })
-        .catch(() => caches.match(request).then((cached) => cached || caches.match("/")))
+        .catch(() =>
+          caches.match(request)
+            .then((cached) => cached || caches.match(url.pathname))
+            .then((cached) => cached || caches.match("/"))
+            .then((cached) => cached || caches.match(OFFLINE_FALLBACK))
+        )
     );
     return;
   }
@@ -93,7 +109,11 @@ self.addEventListener("fetch", (event) => {
         })
         .catch(() => null);
 
-      return cached || network || Response.error();
+      if (cached) {
+        event.waitUntil(network);
+        return cached;
+      }
+      return network || caches.match(OFFLINE_FALLBACK) || Response.error();
     })
   );
 });

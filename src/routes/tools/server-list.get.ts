@@ -1,5 +1,9 @@
-import { getExternalBaseUrl } from "../../utils/request";
+import { getExternalBaseUrl, getRequestUrl } from "../../utils/request";
 import { respond } from "../../utils/response";
+
+const DEFAULT_PAGE_TITLE = "NitroCraft Server List Builder";
+const DEFAULT_META_DESCRIPTION =
+  "Build, preview, and share Minecraft server-list MOTD entries with live formatting and icon simulation.";
 
 function escapeHtml(value: string): string {
   return value
@@ -10,18 +14,128 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;");
 }
 
+function stripFormattingCodes(value: string): string {
+  return value.replace(/(?:§|&)[0-9A-FK-ORa-fk-or]/g, "");
+}
+
+function normalizeOgSnippet(value: string, maxLength: number): string {
+  const firstFrame = String(value || "").split("||")[0] || "";
+  const cleaned = stripFormattingCodes(firstFrame)
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned.slice(0, maxLength);
+}
+
+function parseCount(value: string): number | null {
+  const normalized = String(value || "").trim();
+  if (!/^\d{1,6}$/.test(normalized)) {
+    return null;
+  }
+  const parsed = Number.parseInt(normalized, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function buildShareMeta(requestUrl: URL): {
+  pageTitle: string;
+  title: string;
+  description: string;
+  shareUrl: string;
+} {
+  const params = requestUrl.searchParams;
+  const serverName = normalizeOgSnippet(params.get("n") || "", 64);
+  const motdLine1 = normalizeOgSnippet(params.get("m1") || "", 90);
+  const motdLine2 = normalizeOgSnippet(params.get("m2") || "", 90);
+  const version = normalizeOgSnippet(params.get("v") || "", 24);
+  const online = parseCount(params.get("o") || "");
+  const max = parseCount(params.get("x") || "");
+  const playerCounts = online !== null && max !== null ? `${online}/${max}` : "";
+  const hasShareValues = Boolean(serverName || motdLine1 || motdLine2 || version || playerCounts);
+
+  if (!hasShareValues) {
+    return {
+      pageTitle: DEFAULT_PAGE_TITLE,
+      title: DEFAULT_PAGE_TITLE,
+      description: DEFAULT_META_DESCRIPTION,
+      shareUrl: requestUrl.toString(),
+    };
+  }
+
+  const title = serverName ? `${serverName} - NitroCraft Server List Config` : "NitroCraft Server List Config";
+  const descriptionParts = [];
+  if (motdLine1) {
+    descriptionParts.push(motdLine1);
+  }
+  if (motdLine2) {
+    descriptionParts.push(motdLine2);
+  }
+  if (playerCounts) {
+    descriptionParts.push(`Players ${playerCounts}`);
+  }
+  if (version) {
+    descriptionParts.push(`Version ${version}`);
+  }
+  const description = (descriptionParts.length
+    ? `Shared Minecraft server-list setup: ${descriptionParts.join(" | ")}`
+    : `Shared Minecraft server-list setup for ${serverName || "NitroCraft"}.`)
+    .slice(0, 240);
+
+  return {
+    pageTitle: `${title} | NitroCraft`,
+    title,
+    description,
+    shareUrl: requestUrl.toString(),
+  };
+}
+
 export default defineEventHandler((event) => {
   const baseUrl = getExternalBaseUrl(event);
+  const requestUrl = getRequestUrl(event);
   const safeBaseUrl = escapeHtml(baseUrl);
+  const canonicalUrl = `${baseUrl.replace(/\/$/, "")}/tools/server-list`;
+  const safeCanonicalUrl = escapeHtml(canonicalUrl);
+  const shareMeta = buildShareMeta(requestUrl);
+  const safeShareTitle = escapeHtml(shareMeta.title);
+  const safeShareDescription = escapeHtml(shareMeta.description);
+  const safeShareUrl = escapeHtml(shareMeta.shareUrl);
+  const schemaJson = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: shareMeta.title,
+    applicationCategory: "DeveloperApplication",
+    operatingSystem: "Any",
+    url: shareMeta.shareUrl,
+    description: shareMeta.description,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "NitroCraft",
+      url: baseUrl,
+    },
+  }).replace(/</g, "\\u003c");
 
   const html = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>NitroCraft Server List Builder</title>
-    <meta name="description" content="Build and preview a live Minecraft server list entry with icon, MOTD, and metadata.">
+    <title>${escapeHtml(shareMeta.pageTitle)}</title>
+    <meta name="description" content="${safeShareDescription}">
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+    <meta name="theme-color" content="#050b16">
+    <link rel="canonical" href="${safeCanonicalUrl}">
     <link rel="icon" type="image/x-icon" href="/NitroCraft.ico">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta property="og:title" content="${safeShareTitle}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="${safeShareUrl}">
+    <meta property="og:description" content="${safeShareDescription}">
+    <meta property="og:image" content="${safeBaseUrl}/NitroCraft.png">
+    <meta property="og:image:alt" content="NitroCraft logo">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="${safeShareTitle}">
+    <meta name="twitter:description" content="${safeShareDescription}">
+    <meta name="twitter:image" content="${safeBaseUrl}/NitroCraft.png">
+    <meta name="twitter:url" content="${safeShareUrl}">
+    <script type="application/ld+json">${schemaJson}</script>
     <link rel="stylesheet" href="/stylesheets/style.css">
   </head>
   <body class="docs-page tools-page" lang="en-US">

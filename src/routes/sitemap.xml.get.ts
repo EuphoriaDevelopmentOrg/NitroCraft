@@ -14,9 +14,24 @@ function escapeXml(value: string): string {
     .replaceAll("'", "&apos;");
 }
 
+function resolveLastModified(): string {
+  const raw = String(process.env.SITEMAP_LASTMOD || "").trim();
+  if (!raw) {
+    return new Date().toISOString();
+  }
+
+  try {
+    return new Date(raw).toISOString();
+  } catch {
+    return new Date().toISOString();
+  }
+}
+
+const SITEMAP_LASTMOD = resolveLastModified();
+
 export default defineEventHandler((event) => {
   const base = stripTrailingSlash(getExternalBaseUrl(event));
-  const lastModified = new Date().toISOString();
+  const lastModified = SITEMAP_LASTMOD;
   const routes = [
     {
       loc: `${base}/`,
@@ -24,9 +39,19 @@ export default defineEventHandler((event) => {
       priority: "1.0",
     },
     {
+      loc: `${base}/docs`,
+      changefreq: "weekly",
+      priority: "0.8",
+    },
+    {
       loc: `${base}/tools/server-list`,
       changefreq: "weekly",
       priority: "0.7",
+    },
+    {
+      loc: `${base}/openapi.json`,
+      changefreq: "monthly",
+      priority: "0.4",
     },
   ];
 

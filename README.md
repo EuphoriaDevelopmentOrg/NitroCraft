@@ -33,6 +33,7 @@ NitroCraft is a Minecraft avatar/render API built on Nitro and `minecraft-toolki
 - Optional inbound per-IP request rate limiting (`REQUESTS_RATE_LIMIT`)
 - Hosted API docs (`/docs`) and Prometheus metrics (`/metrics`)
 - Interactive server-list simulator (`/tools/server-list`) with import/share flow
+- PWA support with installable manifest, offline fallback, and share-target support
 - Nitro runtime with `pnpm` workflows
 
 ## API Endpoints
@@ -160,6 +161,8 @@ Create a `.env` file and configure the following values.
 | `STATUS_ALLOW_PRIVATE_TARGETS` | Allow private/local network addresses in `/status/*` probe endpoints (`false` by default). |
 | `MAX_TEXTURE_BYTES` | Maximum allowed texture payload size. |
 | `DEFAULT_REDIRECT_ALLOWLIST` | Comma-separated host allowlist for `default=` URL redirects (supports `*.example.com`). If unset, only `EXTERNAL_URL` host is allowed. |
+| `SITEMAP_LASTMOD` | Optional ISO timestamp used for sitemap `<lastmod>` values. |
+| `SITE_UPDATED_AT` | Optional ISO timestamp exposed via homepage Open Graph `og:updated_time`. |
 | `CORS_ORIGIN` | Empty/`All` allows all origins; otherwise use a comma-separated allowlist. |
 | `RETENTION_DAYS` / `RETENTION_MAX_AGE_HOURS` | Cache/data max age. |
 | `RETENTION_INTERVAL_HOURS` / `RETENTION_INTERVAL_DAYS` | Cleanup schedule interval. |

@@ -10,6 +10,7 @@ import { respond } from "../../src/utils/response";
 (globalThis as { defineEventHandler?: <T>(handler: T) => T }).defineEventHandler = <T>(handler: T): T => handler;
 
 type MockEventOptions = {
+  method?: string;
   url: string;
   params?: Record<string, string>;
   headers?: Record<string, string>;
@@ -30,7 +31,7 @@ function createMockEvent(options: MockEventOptions): {
 
   return {
     event: {
-      method: "GET",
+      method: options.method || "GET",
       path: options.url,
       context: {
         params: options.params || {},
@@ -297,6 +298,33 @@ test("server list builder page renders expected shell", async () => {
   assert.match(String(body), /href="\/docs"/);
   assert.match(String(body), /slb-active-target/);
   assert.match(String(body), /slb-animation-ms/);
+});
+
+test("server list builder shared URL updates OG metadata", async () => {
+  const route = (await import("../../src/routes/tools/server-list.get")).default;
+  const originalExternalUrl = config.server.externalUrl;
+
+  try {
+    (config.server as any).externalUrl = "";
+    const { event, res } = createMockEvent({
+      url: "/tools/server-list?n=My%20Server&m1=%C2%A7aWelcome%20to%20My%20Server%20%7C%7C%20Alt&m2=Join%20now&o=12&x=99&v=1.21.4",
+      headers: {
+        host: "nitrocraft.test",
+        "x-forwarded-proto": "https",
+      },
+    });
+
+    const body = await route(event);
+    assert.equal(res.statusCode, 200);
+    assert.match(String(body), /<title>My Server - NitroCraft Server List Config \| NitroCraft<\/title>/);
+    assert.match(String(body), /property="og:title" content="My Server - NitroCraft Server List Config"/);
+    assert.match(String(body), /property="og:url" content="https:\/\/nitrocraft\.test\/tools\/server-list\?n=My%20Server/);
+    assert.match(String(body), /Shared Minecraft server-list setup:/);
+    assert.match(String(body), /Welcome to My Server/);
+    assert.match(String(body), /Players 12\/99/);
+  } finally {
+    (config.server as any).externalUrl = originalExternalUrl;
+  }
 });
 
 test("index route renders multiple sponsor cards and falls back to legacy sponsor fields", async () => {

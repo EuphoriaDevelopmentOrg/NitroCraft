@@ -1,7 +1,23 @@
+import pkg from "../../package.json";
 import { config } from "../config";
 import { metrics } from "../services/metrics";
 import { getExternalBaseUrl } from "../utils/request";
 import { respond } from "../utils/response";
+
+function resolveSiteUpdatedAt(): string {
+  const raw = String(process.env.SITE_UPDATED_AT || "").trim();
+  if (!raw) {
+    return new Date().toISOString();
+  }
+
+  try {
+    return new Date(raw).toISOString();
+  } catch {
+    return new Date().toISOString();
+  }
+}
+
+const SITE_UPDATED_AT = resolveSiteUpdatedAt();
 
 function escapeHtml(value: string): string {
   return value
@@ -63,6 +79,14 @@ export default defineEventHandler((event) => {
     "Minecraft avatars, skins, capes, and renders at Nitro speed with UUID lookups and caching.";
   const canonicalUrl = domain.endsWith("/") ? domain : `${domain}/`;
   const safeCanonicalUrl = escapeHtml(canonicalUrl);
+  const openApiUrl = `${domain}/openapi.json`;
+  const docsUrl = `${domain}/docs`;
+  const sitemapUrl = `${domain}/sitemap.xml`;
+  const safeOpenApiUrl = escapeHtml(openApiUrl);
+  const safeDocsUrl = escapeHtml(docsUrl);
+  const safeSitemapUrl = escapeHtml(sitemapUrl);
+  const safeSoftwareVersion = escapeHtml(String((pkg as { version?: string }).version || "1.1.6"));
+  const safeUpdatedAt = escapeHtml(SITE_UPDATED_AT);
   const sponsorCandidates = config.sponsors.cards.length
     ? config.sponsors.cards
     : [{
@@ -101,6 +125,16 @@ export default defineEventHandler((event) => {
         name: "NitroCraft",
         url: canonicalUrl,
         description: metaDescription,
+        potentialAction: {
+          "@type": "SearchAction",
+          target: `${canonicalUrl}docs`,
+          "query-input": "required name=endpoint",
+        },
+      },
+      {
+        "@type": "Organization",
+        name: "Euphoria Development",
+        url: canonicalUrl,
       },
       {
         "@type": "WebAPI",
@@ -113,6 +147,19 @@ export default defineEventHandler((event) => {
           name: "Euphoria Development",
           url: canonicalUrl,
         },
+      },
+      {
+        "@type": "SoftwareApplication",
+        name: "NitroCraft",
+        operatingSystem: "Any",
+        applicationCategory: "DeveloperApplication",
+        softwareVersion: String((pkg as { version?: string }).version || "1.1.6"),
+        offers: {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "USD",
+        },
+        url: canonicalUrl,
       },
     ],
   }).replace(/</g, "\\u003c");
@@ -138,6 +185,8 @@ export default defineEventHandler((event) => {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="canonical" href="${safeCanonicalUrl}">
+    <link rel="alternate" type="application/json" title="NitroCraft OpenAPI" href="${safeOpenApiUrl}">
+    <link rel="sitemap" type="application/xml" href="${safeSitemapUrl}">
     <link rel="preload" as="image" href="/NitroCraft-320.png">
     <link rel="icon" type="image/x-icon" href="/NitroCraft.ico">
     <link rel="apple-touch-icon" href="/NitroCraft.png">
@@ -147,24 +196,31 @@ export default defineEventHandler((event) => {
     <meta name="description" content="${metaDescription}">
     <meta name="keywords" content="minecraft, avatar, renders, skins, uuid, nitrocraft">
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+    <meta name="author" content="Euphoria Development">
+    <meta name="format-detection" content="telephone=no">
     <meta name="application-name" content="NitroCraft">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="NitroCraft">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#050b16">
+    <meta name="version" content="${safeSoftwareVersion}">
+    <meta property="og:updated_time" content="${safeUpdatedAt}">
     <meta property="og:title" content="NitroCraft">
     <meta property="og:site_name" content="NitroCraft">
     <meta property="og:type" content="website">
     <meta property="og:url" content="${safeCanonicalUrl}">
     <meta property="og:image" content="${safeDomain}/NitroCraft.png">
+    <meta property="og:image:type" content="image/png">
     <meta property="og:image:alt" content="NitroCraft logo">
     <meta property="og:description" content="${metaDescription}">
     <meta property="og:locale" content="en_US">
+    <meta property="og:see_also" content="${safeDocsUrl}">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="NitroCraft">
     <meta name="twitter:description" content="${metaDescription}">
     <meta name="twitter:image" content="${safeDomain}/NitroCraft.png">
     <meta name="twitter:image:alt" content="NitroCraft logo">
+    <meta name="twitter:url" content="${safeCanonicalUrl}">
     <script type="application/ld+json">${schemaJson}</script>
   </head>
   <body class="docs-page" lang="en-US">

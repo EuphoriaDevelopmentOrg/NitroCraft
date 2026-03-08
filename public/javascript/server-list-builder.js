@@ -148,8 +148,59 @@
     setActiveTargetNote(input);
   }
 
+  function applySharedBuilderLinkParams(sharedUrl, params) {
+    var parsed;
+    try {
+      parsed = new URL(sharedUrl, window.location.origin);
+    } catch {
+      return false;
+    }
+
+    if (parsed.pathname !== window.location.pathname) {
+      return false;
+    }
+
+    var imported = false;
+    var keys = ["n", "m1", "m2", "am", "o", "x", "v", "p", "i"];
+    var sourceParams = parsed.searchParams;
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i];
+      if (params.has(key) || !sourceParams.has(key)) {
+        continue;
+      }
+      params.set(key, sourceParams.get(key) || "");
+      imported = true;
+    }
+
+    return imported;
+  }
+
   function parseInitialParams() {
     var params = new URLSearchParams(window.location.search);
+    var sharedTitle = String(params.get("shareTitle") || "").trim();
+    var sharedText = String(params.get("shareText") || "").trim();
+    var sharedUrl = String(params.get("shareUrl") || "").trim();
+    var importedSharedBuilderLink = false;
+
+    if (sharedUrl) {
+      importedSharedBuilderLink = applySharedBuilderLinkParams(sharedUrl, params);
+      if (!importedSharedBuilderLink && controls.importAddress && !controls.importAddress.value) {
+        try {
+          var parsedShared = new URL(sharedUrl, window.location.origin);
+          controls.importAddress.value = parsedShared.host || parsedShared.hostname || "";
+        } catch {
+          controls.importAddress.value = "";
+        }
+      }
+    }
+
+    if (!params.has("n") && sharedTitle) {
+      state.serverName = sharedTitle;
+    }
+    if (!params.has("m1") && sharedText) {
+      state.motdLine1 = sharedText;
+    }
+
     if (params.has("n")) {
       state.serverName = params.get("n") || defaults.serverName;
     }
@@ -176,6 +227,12 @@
     }
     if (params.has("i")) {
       state.icon = params.get("i") || defaults.icon;
+    }
+
+    if (importedSharedBuilderLink) {
+      setNote(controls.importStatus, "Imported settings from shared builder link.", false);
+    } else if (sharedUrl && controls.importAddress && controls.importAddress.value) {
+      setNote(controls.importStatus, "Shared URL detected. Click Import Status to fetch live data.", false);
     }
   }
 

@@ -1,13 +1,57 @@
 {
+  "id": "/",
   "name": "NitroCraft",
   "short_name": "NitroCraft",
   "description": "Minecraft avatars, skins, and renders at Nitro speed.",
   "start_url": "/",
   "scope": "/",
+  "display_override": ["standalone", "browser"],
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#050b16",
   "theme_color": "#050b16",
-  "lang": "en-GB",
+  "lang": "en-US",
+  "categories": ["developer", "utilities", "games"],
+  "shortcuts": [
+    {
+      "name": "Server List Builder",
+      "short_name": "Builder",
+      "description": "Build and share Minecraft server-list previews.",
+      "url": "/tools/server-list",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png",
+          "purpose": "any maskable"
+        }
+      ]
+    },
+    {
+      "name": "API Docs",
+      "short_name": "Docs",
+      "description": "Browse NitroCraft endpoint documentation.",
+      "url": "/docs",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png",
+          "purpose": "any maskable"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "/tools/server-list",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "shareTitle",
+      "text": "shareText",
+      "url": "shareUrl"
+    }
+  },
   "icons": [
     {
       "src": "/icons/icon-192.png",

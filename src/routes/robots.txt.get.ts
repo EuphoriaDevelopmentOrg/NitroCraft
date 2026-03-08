@@ -10,6 +10,9 @@ export default defineEventHandler((event) => {
   const body = [
     "User-agent: *",
     "Allow: /",
+    "Disallow: /metrics",
+    "Disallow: /metrics/api-calls",
+    "Disallow: /_openapi.json",
     `Sitemap: ${base}/sitemap.xml`,
     "",
   ].join("\n");
