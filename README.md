@@ -29,10 +29,13 @@ NitroCraft is a Minecraft avatar/render API built on Nitro and `minecraft-toolki
 - Username/UUID resolution endpoints via `minecraft-toolkit`
 - Disk + metadata caching with Redis or memory backend
 - Short-TTL + in-flight deduplicated status probe caching for `/status/*` endpoints
+- Batch status browsing endpoint with concurrency guards (`/status/browser`)
+- Optional source-ingest mode for `/status/browser` via configured public feed URLs
 - Configurable outbound Mojang session rate limiting (`SESSIONS_RATE_LIMIT`)
 - Optional inbound per-IP request rate limiting (`REQUESTS_RATE_LIMIT`)
 - Hosted API docs (`/docs`) and Prometheus metrics (`/metrics`)
 - Interactive server-list simulator (`/tools/server-list`) with import/share flow
+- Interactive multi-server browser (`/tools/server-browser`) for side-by-side probes
 - PWA support with installable manifest, offline fallback, and share-target support
 - Nitro runtime with `pnpm` workflows
 
@@ -59,6 +62,8 @@ NitroCraft is a Minecraft avatar/render API built on Nitro and `minecraft-toolki
 - `GET /status/java?address=host`
 - `GET /status/bedrock?address=host`
 - `GET /status/server?address=host&edition=auto`
+- `GET /status/browser?address=hostA&address=hostB`
+- `GET /status/browser?source=my-directory&source=another-directory`
 - `GET /status/icon?address=host`
 
 ### Text Formatting
@@ -70,6 +75,7 @@ NitroCraft is a Minecraft avatar/render API built on Nitro and `minecraft-toolki
 ### Tooling and Meta
 
 - `GET /tools/server-list`
+- `GET /tools/server-browser`
 - `GET /docs`
 - `GET /metrics`
 
@@ -170,6 +176,11 @@ Create a `.env` file and configure the following values.
 | `BIND` | Bind address/interface. |
 | `EXTERNAL_URL` | Public base URL used for generated external links. |
 | `STATUS_PROBE_CACHE_TTL_MS` | Cache TTL for `/status/java`, `/status/bedrock`, `/status/server`, and `/status/icon` probes. |
+| `STATUS_BROWSER_MAX_ADDRESSES` | Maximum number of targets accepted by `/status/browser` per request. |
+| `STATUS_BROWSER_MAX_CONCURRENCY` | Maximum request-level concurrency allowed by `/status/browser`. |
+| `STATUS_BROWSER_SOURCE_TIMEOUT_MS` | Timeout used when fetching configured status-browser source feeds. |
+| `STATUS_BROWSER_MAX_SOURCE_ADDRESSES` | Maximum addresses parsed from each source feed payload before probing. |
+| `STATUS_BROWSER_SOURCES` | JSON array of source feeds for ingestion, each as `{ "id": "...", "label": "...", "url": "https://..." }`. |
 
 ## Notes
 

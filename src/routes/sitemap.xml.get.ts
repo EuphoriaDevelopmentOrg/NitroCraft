@@ -49,6 +49,11 @@ export default defineEventHandler((event) => {
       priority: "0.7",
     },
     {
+      loc: `${base}/tools/server-browser`,
+      changefreq: "weekly",
+      priority: "0.7",
+    },
+    {
       loc: `${base}/openapi.json`,
       changefreq: "monthly",
       priority: "0.4",

@@ -303,6 +303,28 @@ export default defineEventHandler((event) => {
           },
         },
       },
+      "/status/browser": {
+        get: {
+          tags: ["status"],
+          summary: "Batch probe multiple server addresses with bounded concurrency.",
+          parameters: [
+            queryStringParam("address", "Server target. Repeat this query for multiple hosts."),
+            queryStringParam("addresses", "Alternative comma/newline-separated target list."),
+            queryStringParam("source", "Configured source id. Repeat to ingest multiple provider feeds."),
+            queryStringParam("sources", "Alternative comma/newline-separated source id list."),
+            queryStringParam("edition", "java, bedrock, or auto."),
+            queryStringParam("limit", "Maximum number of parsed targets to probe."),
+            queryStringParam("concurrency", "Maximum in-flight probes for this request."),
+            queryStringParam("port", "Optional explicit port override applied to all targets."),
+            queryStringParam("timeoutMs", "Probe timeout in milliseconds."),
+            queryStringParam("protocolVersion", "Optional Java protocol override."),
+          ],
+          responses: {
+            200: { description: "Batch status payload with per-target success/error results." },
+            422: { description: "Invalid query input." },
+          },
+        },
+      },
       "/status/icon": {
         get: {
           tags: ["status"],

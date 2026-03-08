@@ -286,6 +286,7 @@ export default defineEventHandler((event) => {
 
         <div class="quick-links" aria-label="Quick links">
           <a class="quick-link" href="${safeDomain}/tools/server-list">Server List Builder</a>
+          <a class="quick-link" href="${safeDomain}/tools/server-browser">Server Browser</a>
           <a class="quick-link" href="${safeDomain}/docs">API Docs</a>
         </div>
 
@@ -399,11 +400,14 @@ export default defineEventHandler((event) => {
               <li><code>${safeDomain}/status/java?address=mc.hypixel.net</code> - Java status ping</li>
               <li><code>${safeDomain}/status/bedrock?address=play.example.net&port=19132</code> - Bedrock status ping</li>
               <li><code>${safeDomain}/status/server?address=mc.hypixel.net&edition=auto</code> - auto status probe</li>
+              <li><code>${safeDomain}/status/browser?address=mc.hypixel.net&address=play.cubecraft.net</code> - batch status probe</li>
+              <li><code>${safeDomain}/status/browser?source=example-directory</code> - probe from configured source feeds</li>
               <li><code>${safeDomain}/status/icon?address=mc.hypixel.net</code> - Java server icon</li>
               <li><code>${safeDomain}/format/html?text=%C2%A7aWelcome%20%C2%A7lHero</code> - formatting to HTML</li>
               <li><code>${safeDomain}/format/strip?text=%C2%A7aWelcome%20%C2%A7lHero</code> - strip formatting codes</li>
               <li><code>${safeDomain}/format/css</code> - CSS classes for formatting mode</li>
               <li><code>${safeDomain}/tools/server-list</code> - live Minecraft server-list entry simulator</li>
+              <li><code>${safeDomain}/tools/server-browser</code> - multi-server browser and status comparison</li>
               <li><code>${safeDomain}/docs</code> - interactive API reference (Scalar)</li>
               <li><code>${safeDomain}/metrics</code> - Prometheus metrics endpoint</li>
             </ul>
@@ -537,6 +541,7 @@ export default defineEventHandler((event) => {
             <a href="${safeDomain}/status/mc">Service Status</a>
             <a href="${safeDomain}/renders/head/853c80ef3c3749fdaa49938b674adae6?scale=6&amp;overlay">Live Example</a>
             <a href="${safeDomain}/tools/server-list">Server List Builder</a>
+            <a href="${safeDomain}/tools/server-browser">Server Browser</a>
             <a href="${safeDomain}/docs">API Docs</a>
           </span>
         </p>

@@ -149,6 +149,79 @@ test("status route blocks private probe targets by default", async () => {
   }
 });
 
+test("status browser route validates required targets and maximum batch size", async () => {
+  const route = (await import("../../src/routes/status/browser.get")).default;
+  const originalMaxAddresses = config.server.statusBrowserMaxAddresses;
+
+  try {
+    const missingTargets = createMockEvent({
+      url: "/status/browser",
+    });
+    const missingBody = await route(missingTargets.event);
+    assert.equal(missingTargets.res.statusCode, 422);
+    assert.match(String(missingBody), /Missing server targets/i);
+
+    (config.server as any).statusBrowserMaxAddresses = 2;
+    const tooManyTargets = createMockEvent({
+      url: "/status/browser?address=one.example.net&address=two.example.net&address=three.example.net",
+    });
+    const tooManyBody = await route(tooManyTargets.event);
+    assert.equal(tooManyTargets.res.statusCode, 422);
+    assert.match(String(tooManyBody), /Too many server targets/i);
+  } finally {
+    (config.server as any).statusBrowserMaxAddresses = originalMaxAddresses;
+  }
+});
+
+test("status browser route returns per-target failures for blocked private addresses", async () => {
+  const route = (await import("../../src/routes/status/browser.get")).default;
+  const originalAllowPrivate = config.server.allowPrivateStatusTargets;
+
+  try {
+    (config.server as any).allowPrivateStatusTargets = false;
+
+    const probe = createMockEvent({
+      url: "/status/browser?address=127.0.0.1&address=localhost",
+    });
+    const probeBody = await route(probe.event);
+    assert.equal(probe.res.statusCode, 200);
+    const payload = JSON.parse(String(probeBody));
+    assert.equal(payload.processed, 2);
+    assert.equal(payload.succeeded, 0);
+    assert.equal(payload.failed, 2);
+    assert.equal(Array.isArray(payload.results), true);
+    assert.equal(payload.results.length, 2);
+    assert.equal(payload.results[0].ok, false);
+    assert.match(String(payload.results[0].error), /Private\/local targets are not allowed/i);
+  } finally {
+    (config.server as any).allowPrivateStatusTargets = originalAllowPrivate;
+  }
+});
+
+test("status browser route rejects unknown source ids", async () => {
+  const route = (await import("../../src/routes/status/browser.get")).default;
+  const originalSources = config.server.statusBrowserSources.map((source) => ({ ...source }));
+
+  try {
+    (config.server as any).statusBrowserSources = [
+      {
+        id: "demo-source",
+        label: "Demo Source",
+        url: "https://example.com/servers.json",
+      },
+    ];
+
+    const unknownSource = createMockEvent({
+      url: "/status/browser?source=does-not-exist",
+    });
+    const body = await route(unknownSource.event);
+    assert.equal(unknownSource.res.statusCode, 422);
+    assert.match(String(body), /Unknown source id/i);
+  } finally {
+    (config.server as any).statusBrowserSources = originalSources;
+  }
+});
+
 test("status routes reject out-of-range numeric values", async () => {
   const route = (await import("../../src/routes/status/java.get")).default;
   const originalAllowPrivate = config.server.allowPrivateStatusTargets;
@@ -281,6 +354,7 @@ test("metrics and openapi routes return expected payloads", async () => {
   assert.ok(spec.paths["/openapi.json"]);
   assert.ok(spec.paths["/metrics"]);
   assert.ok(spec.paths["/metrics/api-calls"]);
+  assert.ok(spec.paths["/status/browser"]);
   assert.equal(typeof spec.servers[0].url, "string");
   assert.ok(String(spec.servers[0].url).startsWith("http"));
 });
@@ -322,6 +396,36 @@ test("server list builder page renders expected shell", async () => {
   assert.match(String(body), /href="\/docs"/);
   assert.match(String(body), /slb-active-target/);
   assert.match(String(body), /slb-animation-ms/);
+});
+
+test("server browser page renders expected shell", async () => {
+  const route = (await import("../../src/routes/tools/server-browser.get")).default;
+  const originalSources = config.server.statusBrowserSources.map((source) => ({ ...source }));
+
+  try {
+    (config.server as any).statusBrowserSources = [
+      {
+        id: "demo-source",
+        label: "Demo Source",
+        url: "https://example.com/servers.json",
+      },
+    ];
+
+    const { event, res } = createMockEvent({
+      url: "/tools/server-browser",
+    });
+
+    const body = await route(event);
+    assert.equal(res.statusCode, 200);
+    assert.match(String(body), /Server Browser/i);
+    assert.match(String(body), /nsb-probe-btn/);
+    assert.match(String(body), /nsb-results-list/);
+    assert.match(String(body), /name="nsb-source"/);
+    assert.match(String(body), /value="demo-source"/);
+    assert.match(String(body), /\/javascript\/server-browser\.js/);
+  } finally {
+    (config.server as any).statusBrowserSources = originalSources;
+  }
 });
 
 test("server list builder shared URL updates OG metadata", async () => {

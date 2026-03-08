@@ -153,6 +153,12 @@ type SponsorCard = {
   alt: string;
 };
 
+type StatusBrowserSource = {
+  id: string;
+  label: string;
+  url: string;
+};
+
 function parseSponsorCards(value: string | undefined, fallbackAlt: string): SponsorCard[] {
   const raw = String(value || "").trim();
   if (!raw) {
@@ -191,6 +197,63 @@ function parseSponsorCards(value: string | undefined, fallbackAlt: string): Spon
 
 const sponsorCardAlt = envString("SPONSOR_CARD_ALT", "Sponsor");
 const sponsorCards = parseSponsorCards(process.env.SPONSOR_CARDS, sponsorCardAlt);
+
+function parseStatusBrowserSources(value: string | undefined): StatusBrowserSource[] {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    const sources: StatusBrowserSource[] = [];
+    const seenIds = new Set<string>();
+    for (const entry of parsed) {
+      if (!entry || typeof entry !== "object") {
+        continue;
+      }
+
+      const record = entry as Record<string, unknown>;
+      const rawId = String(record.id || "").trim().toLowerCase();
+      const label = String(record.label || rawId).trim();
+      const rawUrl = String(record.url || "").trim();
+
+      if (!/^[a-z0-9][a-z0-9_-]{1,63}$/.test(rawId) || !rawUrl) {
+        continue;
+      }
+      if (seenIds.has(rawId)) {
+        continue;
+      }
+
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(rawUrl);
+      } catch {
+        continue;
+      }
+      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+        continue;
+      }
+
+      seenIds.add(rawId);
+      sources.push({
+        id: rawId,
+        label: label || rawId,
+        url: parsedUrl.toString(),
+      });
+    }
+
+    return sources;
+  } catch {
+    return [];
+  }
+}
+
+const statusBrowserSources = parseStatusBrowserSources(process.env.STATUS_BROWSER_SOURCES);
 
 export const config = {
   avatars: {
@@ -241,6 +304,11 @@ export const config = {
     bind: process.env.BIND || "0.0.0.0",
     httpTimeout: envInt("EXTERNAL_HTTP_TIMEOUT", 2000),
     statusProbeCacheTtlMs: envInt("STATUS_PROBE_CACHE_TTL_MS", 10_000),
+    statusBrowserMaxAddresses: envInt("STATUS_BROWSER_MAX_ADDRESSES", 20),
+    statusBrowserMaxConcurrency: envInt("STATUS_BROWSER_MAX_CONCURRENCY", 4),
+    statusBrowserSourceTimeoutMs: envInt("STATUS_BROWSER_SOURCE_TIMEOUT_MS", 3500),
+    statusBrowserMaxSourceAddresses: envInt("STATUS_BROWSER_MAX_SOURCE_ADDRESSES", 200),
+    statusBrowserSources,
     debugEnabled: envBool("DEBUG", false),
     logTime: envBool("LOG_TIME", true),
     sessionsRateLimit: envInt("SESSIONS_RATE_LIMIT", Number.NaN),
