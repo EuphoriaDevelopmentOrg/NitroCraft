@@ -239,12 +239,6 @@ export default defineEventHandler((event) => {
           <a href="https://github.com/sponsors/EuphoriaDevelopmentOrg" target="_blank" rel="noopener noreferrer">
             <img src="https://img.shields.io/badge/GitHub%20Sponsors-Support-181717?logo=githubsponsors&logoColor=white" alt="Support via GitHub Sponsors" width="173" height="20" loading="lazy" decoding="async">
           </a>
-          <a href="https://www.paypal.me/repgraphics" target="_blank" rel="noopener noreferrer">
-            <img src="https://img.shields.io/badge/PayPal-Donate-00457C?logo=paypal&logoColor=white" alt="Donate via PayPal" width="113" height="20" loading="lazy" decoding="async">
-          </a>
-          <a href="https://www.patreon.com/c/EuphoriaDevelopment" target="_blank" rel="noopener noreferrer">
-            <img src="https://img.shields.io/badge/Patreon-Become%20a%20Patron-F96854?logo=patreon&logoColor=white" alt="Support on Patreon" width="173" height="20" loading="lazy" decoding="async">
-          </a>
         </div>
         <p class="support-tier-note">Support tiers: <strong>$5</strong> Supporter, <strong>$10</strong> Builder, and <strong>$20</strong> Sponsor Spotlight (includes homepage + <a href="https://github.com/EuphoriaDevelopmentOrg/NitroCraft#donations" target="_blank" rel="noopener noreferrer">README sponsor placement</a>).</p>
       </div>
