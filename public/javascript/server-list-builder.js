@@ -55,13 +55,31 @@
   var motdRenderTimer = null;
   var motdCycleTimer = null;
   var motdRenderToken = 0;
-  var motdHtmlCache = Object.create(null);
   var activeMotdInput = null;
 
   var motdTemplates = {
     rainbow: "\u00a7cN\u00a76i\u00aet\u00a7ar\u00a7bo\u00a7dC\u00a75r\u00a79a\u00a7af\u00a7bt || \u00a7fNitroCraft",
     pulse: "\u00a7c[SALE] || \u00a7e[SALE] || \u00a7a[SALE]",
     status: "\u00a7aOnline || \u00a7eRestarting Soon || \u00a7cMaintenance"
+  };
+  var safeIconDataUrlPattern = /^data:image\/(?:png|jpeg|jpg|gif|webp|bmp|x-icon);base64,[a-z0-9+/=]+$/i;
+  var minecraftColorMap = {
+    "0": "#000000",
+    "1": "#0000aa",
+    "2": "#00aa00",
+    "3": "#00aaaa",
+    "4": "#aa0000",
+    "5": "#aa00aa",
+    "6": "#ffaa00",
+    "7": "#aaaaaa",
+    "8": "#555555",
+    "9": "#5555ff",
+    a: "#55ff55",
+    b: "#55ffff",
+    c: "#ff5555",
+    d: "#ff55ff",
+    e: "#ffff55",
+    f: "#ffffff"
   };
 
   function clampNumber(value, fallback, min, max) {
@@ -78,13 +96,24 @@
     return parsed;
   }
 
-  function escapeHtml(value) {
-    return String(value || "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#39;");
+  function sanitizeIconSource(value) {
+    var raw = String(value || "").trim();
+    if (!raw) {
+      return defaults.icon;
+    }
+    if (raw.startsWith("data:")) {
+      return safeIconDataUrlPattern.test(raw) ? raw : defaults.icon;
+    }
+    try {
+      var parsed = new URL(raw, window.location.origin);
+      var isHttp = parsed.protocol === "http:" || parsed.protocol === "https:";
+      if (!isHttp || parsed.origin !== window.location.origin) {
+        return defaults.icon;
+      }
+      return parsed.pathname + parsed.search + parsed.hash;
+    } catch {
+      return defaults.icon;
+    }
   }
 
   function setNote(element, message, isError) {
@@ -226,7 +255,7 @@
       state.ping = clampNumber(params.get("p"), defaults.ping, 0, 5);
     }
     if (params.has("i")) {
-      state.icon = params.get("i") || defaults.icon;
+      state.icon = sanitizeIconSource(params.get("i") || defaults.icon);
     }
 
     if (importedSharedBuilderLink) {
@@ -259,7 +288,7 @@
     state.max = clampNumber(controls.max.value, defaults.max, 1, 999999);
     state.version = String(controls.version.value || "").slice(0, 32);
     state.ping = clampNumber(controls.ping.value, defaults.ping, 0, 5);
-    state.icon = String(controls.iconUrl.value || "").trim() || defaults.icon;
+    state.icon = sanitizeIconSource(controls.iconUrl.value);
   }
 
   function updatePingBars(target, level) {
@@ -310,28 +339,132 @@
     return expanded;
   }
 
-  function fetchMotdHtml(text) {
-    var key = String(text || "");
-    if (Object.prototype.hasOwnProperty.call(motdHtmlCache, key)) {
-      return Promise.resolve(motdHtmlCache[key]);
+  function createMotdStyle() {
+    return {
+      color: "",
+      bold: false,
+      italic: false,
+      underline: false,
+      strike: false
+    };
+  }
+
+  function applyStyleCode(style, code) {
+    if (Object.prototype.hasOwnProperty.call(minecraftColorMap, code)) {
+      style.color = minecraftColorMap[code];
+      style.bold = false;
+      style.italic = false;
+      style.underline = false;
+      style.strike = false;
+      return true;
     }
 
-    return fetch("/format/html?text=" + encodeURIComponent(text), {
-      cache: "no-store"
-    }).then(function(response) {
-      if (!response.ok) {
-        throw new Error("format error");
+    if (code === "l") {
+      style.bold = true;
+      return true;
+    }
+    if (code === "m") {
+      style.strike = true;
+      return true;
+    }
+    if (code === "n") {
+      style.underline = true;
+      return true;
+    }
+    if (code === "o") {
+      style.italic = true;
+      return true;
+    }
+    if (code === "r") {
+      style.color = "";
+      style.bold = false;
+      style.italic = false;
+      style.underline = false;
+      style.strike = false;
+      return true;
+    }
+    return false;
+  }
+
+  function isStyleCode(code) {
+    return (
+      Object.prototype.hasOwnProperty.call(minecraftColorMap, code) ||
+      code === "l" ||
+      code === "m" ||
+      code === "n" ||
+      code === "o" ||
+      code === "r"
+    );
+  }
+
+  function styleTokenElement(element, style) {
+    if (!element) {
+      return;
+    }
+    if (style.color) {
+      element.style.color = style.color;
+    }
+    if (style.bold) {
+      element.style.fontWeight = "700";
+    }
+    if (style.italic) {
+      element.style.fontStyle = "italic";
+    }
+
+    var decorations = [];
+    if (style.underline) {
+      decorations.push("underline");
+    }
+    if (style.strike) {
+      decorations.push("line-through");
+    }
+    if (decorations.length) {
+      element.style.textDecoration = decorations.join(" ");
+    }
+  }
+
+  function renderMotdLine(target, text) {
+    if (!target) {
+      return;
+    }
+
+    var source = String(text || "");
+    var fragment = document.createDocumentFragment();
+    var style = createMotdStyle();
+    var buffer = "";
+
+    function flushBuffer() {
+      if (!buffer) {
+        return;
       }
-      return response.json();
-    }).then(function(payload) {
-      if (payload && typeof payload.html === "string") {
-        motdHtmlCache[key] = payload.html;
-        return payload.html;
+      var token = document.createElement("span");
+      token.textContent = buffer;
+      styleTokenElement(token, style);
+      fragment.appendChild(token);
+      buffer = "";
+    }
+
+    for (var i = 0; i < source.length; i++) {
+      var char = source.charAt(i);
+      if (char === "\u00a7" && i + 1 < source.length) {
+        var code = source.charAt(i + 1).toLowerCase();
+        if (isStyleCode(code)) {
+          flushBuffer();
+          applyStyleCode(style, code);
+          i++;
+          continue;
+        }
       }
-      var safe = escapeHtml(text);
-      motdHtmlCache[key] = safe;
-      return safe;
-    });
+      buffer += char;
+    }
+
+    flushBuffer();
+
+    if (!fragment.childNodes.length) {
+      fragment.appendChild(document.createTextNode("\u00a0"));
+    }
+
+    target.replaceChildren(fragment);
   }
 
   function renderMotd() {
@@ -343,42 +476,28 @@
     var frameCount = Math.max(line1Frames.length, line2Frames.length);
     var expandedLine1 = expandFrameList(line1Frames, frameCount);
     var expandedLine2 = expandFrameList(line2Frames, frameCount);
+    var currentFrame = 0;
 
-    var requests = expandedLine1.map(fetchMotdHtml).concat(expandedLine2.map(fetchMotdHtml));
-
-    Promise.all(requests).then(function(parts) {
+    var applyFrame = function(index) {
       if (token !== motdRenderToken) {
         return;
       }
+      renderMotdLine(preview.motdLine1, expandedLine1[index] || "");
+      renderMotdLine(preview.motdLine2, expandedLine2[index] || "");
+    };
 
-      var line1HtmlFrames = parts.slice(0, frameCount);
-      var line2HtmlFrames = parts.slice(frameCount);
-      var currentFrame = 0;
+    applyFrame(0);
 
-      var applyFrame = function(index) {
-        preview.motdLine1.innerHTML = line1HtmlFrames[index] || "&nbsp;";
-        preview.motdLine2.innerHTML = line2HtmlFrames[index] || "&nbsp;";
-      };
-
-      applyFrame(0);
-
-      if (frameCount > 1) {
-        motdCycleTimer = window.setInterval(function() {
-          if (token !== motdRenderToken) {
-            clearMotdCycleTimer();
-            return;
-          }
-          currentFrame = (currentFrame + 1) % frameCount;
-          applyFrame(currentFrame);
-        }, state.animationMs);
-      }
-    }).catch(function() {
-      if (token !== motdRenderToken) {
-        return;
-      }
-      preview.motdLine1.textContent = state.motdLine1 || "";
-      preview.motdLine2.textContent = state.motdLine2 || "";
-    });
+    if (frameCount > 1) {
+      motdCycleTimer = window.setInterval(function() {
+        if (token !== motdRenderToken) {
+          clearMotdCycleTimer();
+          return;
+        }
+        currentFrame = (currentFrame + 1) % frameCount;
+        applyFrame(currentFrame);
+      }, state.animationMs);
+    }
   }
 
   function scheduleMotdRender() {

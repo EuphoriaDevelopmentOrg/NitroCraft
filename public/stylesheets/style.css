@@ -1392,6 +1392,16 @@ footer#footer .container.row {
   margin: 0;
 }
 
+.server-browser-hint {
+  margin: 1.7rem 0 0;
+}
+
+.server-browser-pagination {
+  justify-content: space-between;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
 .server-browser-results {
   min-width: 0;
   display: grid;

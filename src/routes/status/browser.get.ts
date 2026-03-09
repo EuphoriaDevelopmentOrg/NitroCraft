@@ -2,6 +2,7 @@ import { fetchServerStatus } from "minecraft-toolkit";
 import type { ServerEdition, ServerStatus } from "minecraft-toolkit";
 import { config } from "../../config";
 import { statusProbeCacheKey, withStatusProbeCache } from "../../services/status-probe-cache";
+import { getServerBrowserDatasetAddresses } from "../../services/server-browser-lists";
 import { validateServerProbeAddress } from "../../utils/network-safety";
 import { getQueryParams } from "../../utils/query";
 import { jsonBadRequest, jsonResponse, parseBoundedIntegerQuery } from "../../utils/toolkit";
@@ -31,6 +32,7 @@ type ToolkitLikeError = {
 
 const MAX_CONCURRENCY_HARD_LIMIT = 16;
 const MAX_ADDRESSES_HARD_LIMIT = 100;
+const MAX_PER_PAGE_HARD_LIMIT = 100;
 const MAX_SOURCE_ADDRESSES_HARD_LIMIT = 5000;
 const SOURCE_COLLECTION_KEYS = ["servers", "data", "results", "list", "items"] as const;
 const SOURCE_ADDRESS_KEYS = ["address", "host", "hostname", "ip", "domain", "server", "serverAddress", "serverIp"] as const;
@@ -57,6 +59,17 @@ function parseEdition(query: URLSearchParams): ServerEdition | undefined {
     return undefined;
   }
   if (raw === "auto" || raw === "java" || raw === "bedrock") {
+    return raw;
+  }
+  return undefined;
+}
+
+function parseDataset(query: URLSearchParams): "java" | "bedrock" | undefined {
+  const raw = String(query.get("dataset") || query.get("list") || "").trim().toLowerCase();
+  if (!raw) {
+    return undefined;
+  }
+  if (raw === "java" || raw === "bedrock") {
     return raw;
   }
   return undefined;
@@ -501,6 +514,10 @@ export default defineEventHandler(async (event) => {
   if ((query.has("edition") || query.has("type")) && !edition) {
     return jsonBadRequest(event, "Invalid edition/type. Use java, bedrock, or auto.");
   }
+  const dataset = parseDataset(query);
+  if ((query.has("dataset") || query.has("list")) && !dataset) {
+    return jsonBadRequest(event, "Invalid dataset/list. Use java or bedrock.");
+  }
 
   const maxAddresses = clampInt(
     config.server.statusBrowserMaxAddresses,
@@ -516,67 +533,120 @@ export default defineEventHandler(async (event) => {
   );
 
   const limit = parseBoundedIntegerQuery(event, query, "limit", 1, maxAddresses);
+  const page = parseBoundedIntegerQuery(event, query, "page", 1, 100_000);
+  const perPage = parseBoundedIntegerQuery(event, query, "perPage", 1, MAX_PER_PAGE_HARD_LIMIT);
   const timeoutMs = parseBoundedIntegerQuery(event, query, "timeoutMs", 100, 10_000);
   const port = parseBoundedIntegerQuery(event, query, "port", 1, 65_535);
   const protocolVersion = parseBoundedIntegerQuery(event, query, "protocolVersion", 0, 1_000_000);
   const concurrency = parseBoundedIntegerQuery(event, query, "concurrency", 1, maxConcurrency);
 
-  if (limit === null || timeoutMs === null || port === null || protocolVersion === null || concurrency === null) {
+  if (
+    limit === null
+    || page === null
+    || perPage === null
+    || timeoutMs === null
+    || port === null
+    || protocolVersion === null
+    || concurrency === null
+  ) {
     return jsonBadRequest(event, "Invalid numeric query value.");
   }
 
-  const directAddresses = parseDirectAddresses(query);
-  if (directAddresses.length > maxAddresses) {
-    return jsonBadRequest(event, `Too many server targets. Maximum is ${maxAddresses}.`);
-  }
-
-  const sourceSelection = resolveRequestedSources(query, config.server.statusBrowserSources);
-  if (sourceSelection.error) {
-    return jsonBadRequest(event, sourceSelection.error);
-  }
-
   const resolvedTimeoutMs = timeoutMs ?? config.server.httpTimeout;
-  const sourceTimeoutMs = clampInt(
-    config.server.statusBrowserSourceTimeoutMs,
-    resolvedTimeoutMs,
-    200,
-    20_000,
-  );
-  const maxSourceAddresses = clampInt(
-    config.server.statusBrowserMaxSourceAddresses,
-    maxAddresses,
-    1,
-    MAX_SOURCE_ADDRESSES_HARD_LIMIT,
-  );
-
-  const selectedSources = sourceSelection.selected;
-  const sourceResults = selectedSources.length
-    ? await mapWithConcurrency(
-      selectedSources,
-      Math.min(selectedSources.length, maxConcurrency),
-      (source) => fetchSourceAddresses(source, sourceTimeoutMs, maxSourceAddresses),
-    )
-    : [];
-
-  const sourceAddresses = sourceResults
-    .filter((entry) => entry.ok)
-    .flatMap((entry) => entry.addresses);
-
-  const mergedCandidates = dedupeAddresses([...directAddresses, ...sourceAddresses]);
-  if (!mergedCandidates.length) {
-    return jsonBadRequest(
-      event,
-      "Missing server targets. Provide address=host (repeatable), addresses=host1,host2, or source=provider-id.",
-    );
-  }
-
-  const truncatedCandidates = Math.max(0, mergedCandidates.length - maxAddresses);
-  const boundedCandidates = mergedCandidates.slice(0, maxAddresses);
-
-  const resolvedLimit = limit ?? boundedCandidates.length;
-  const targets = boundedCandidates.slice(0, resolvedLimit);
   const resolvedConcurrency = concurrency ?? maxConcurrency;
-  const resolvedEdition = edition || "auto";
+  const resolvedPerPage = perPage ?? 10;
+  const mode = dataset ? "dataset" : "direct";
+
+  let directAddresses: string[] = [];
+  let sourceAddresses: string[] = [];
+  let mergedCandidates: string[] = [];
+  let targets: string[] = [];
+  let truncatedCandidates = 0;
+  let resolvedLimit = 0;
+  let resolvedEdition: ServerEdition = "auto";
+  let resolvedPage = page ?? 1;
+  let totalPages = 1;
+  let sourceSelection: { selected: ConfiguredBrowserSource[]; requested: string[] } = {
+    selected: [],
+    requested: [],
+  };
+  let sourceResults: BrowserSourceResult[] = [];
+
+  if (dataset) {
+    try {
+      mergedCandidates = await getServerBrowserDatasetAddresses(dataset);
+    } catch (err) {
+      return jsonBadRequest(event, toolkitMessage(err, `Failed to load the ${dataset} server list.`));
+    }
+
+    if (!mergedCandidates.length) {
+      return jsonBadRequest(event, `No server targets found in ${dataset}.json.`);
+    }
+
+    totalPages = Math.max(1, Math.ceil(mergedCandidates.length / resolvedPerPage));
+    if (resolvedPage > totalPages) {
+      resolvedPage = totalPages;
+    }
+
+    const startIndex = (resolvedPage - 1) * resolvedPerPage;
+    targets = mergedCandidates.slice(startIndex, startIndex + resolvedPerPage);
+    resolvedLimit = targets.length;
+    resolvedEdition = edition || dataset;
+  } else {
+    directAddresses = parseDirectAddresses(query);
+    if (directAddresses.length > maxAddresses) {
+      return jsonBadRequest(event, `Too many server targets. Maximum is ${maxAddresses}.`);
+    }
+
+    const resolvedSourceSelection = resolveRequestedSources(query, config.server.statusBrowserSources);
+    if (resolvedSourceSelection.error) {
+      return jsonBadRequest(event, resolvedSourceSelection.error);
+    }
+    sourceSelection = {
+      selected: resolvedSourceSelection.selected,
+      requested: resolvedSourceSelection.requested,
+    };
+
+    const sourceTimeoutMs = clampInt(
+      config.server.statusBrowserSourceTimeoutMs,
+      resolvedTimeoutMs,
+      200,
+      20_000,
+    );
+    const maxSourceAddresses = clampInt(
+      config.server.statusBrowserMaxSourceAddresses,
+      maxAddresses,
+      1,
+      MAX_SOURCE_ADDRESSES_HARD_LIMIT,
+    );
+
+    const selectedSources = sourceSelection.selected;
+    sourceResults = selectedSources.length
+      ? await mapWithConcurrency(
+        selectedSources,
+        Math.min(selectedSources.length, maxConcurrency),
+        (source) => fetchSourceAddresses(source, sourceTimeoutMs, maxSourceAddresses),
+      )
+      : [];
+
+    sourceAddresses = sourceResults
+      .filter((entry) => entry.ok)
+      .flatMap((entry) => entry.addresses);
+
+    mergedCandidates = dedupeAddresses([...directAddresses, ...sourceAddresses]);
+    if (!mergedCandidates.length) {
+      return jsonBadRequest(
+        event,
+        "Missing server targets. Provide address=host (repeatable), addresses=host1,host2, or source=provider-id.",
+      );
+    }
+
+    truncatedCandidates = Math.max(0, mergedCandidates.length - maxAddresses);
+    const boundedCandidates = mergedCandidates.slice(0, maxAddresses);
+    resolvedLimit = limit ?? boundedCandidates.length;
+    targets = boundedCandidates.slice(0, resolvedLimit);
+    resolvedEdition = edition || "auto";
+  }
 
   const results = await mapWithConcurrency(targets, resolvedConcurrency, (address) => probeAddress(address, {
     edition: resolvedEdition,
@@ -601,11 +671,16 @@ export default defineEventHandler(async (event) => {
     timeoutMs: resolvedTimeoutMs,
     concurrency: resolvedConcurrency,
     limit: resolvedLimit,
+    mode,
+    dataset: dataset || null,
+    page: mode === "dataset" ? resolvedPage : null,
+    perPage: mode === "dataset" ? resolvedPerPage : null,
+    totalPages: mode === "dataset" ? totalPages : null,
     maxAddresses,
     maxConcurrency,
     sources: {
       requested: sourceSelection.requested,
-      selected: selectedSources.map((source) => source.id),
+      selected: sourceSelection.selected.map((source) => source.id),
       total: sourceResults.length,
       succeeded: sourceResults.filter((entry) => entry.ok).length,
       failed: sourceResults.filter((entry) => !entry.ok).length,

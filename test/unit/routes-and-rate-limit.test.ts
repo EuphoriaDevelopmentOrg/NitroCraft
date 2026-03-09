@@ -222,6 +222,24 @@ test("status browser route rejects unknown source ids", async () => {
   }
 });
 
+test("status browser route validates dataset pagination inputs", async () => {
+  const route = (await import("../../src/routes/status/browser.get")).default;
+
+  const invalidDataset = createMockEvent({
+    url: "/status/browser?dataset=invalid",
+  });
+  const invalidDatasetBody = await route(invalidDataset.event);
+  assert.equal(invalidDataset.res.statusCode, 422);
+  assert.match(String(invalidDatasetBody), /Invalid dataset\/list/i);
+
+  const invalidPerPage = createMockEvent({
+    url: "/status/browser?dataset=java&perPage=101",
+  });
+  const invalidPerPageBody = await route(invalidPerPage.event);
+  assert.equal(invalidPerPage.res.statusCode, 422);
+  assert.match(String(invalidPerPageBody), /Invalid numeric query value/i);
+});
+
 test("status routes reject out-of-range numeric values", async () => {
   const route = (await import("../../src/routes/status/java.get")).default;
   const originalAllowPrivate = config.server.allowPrivateStatusTargets;
@@ -400,32 +418,20 @@ test("server list builder page renders expected shell", async () => {
 
 test("server browser page renders expected shell", async () => {
   const route = (await import("../../src/routes/tools/server-browser.get")).default;
-  const originalSources = config.server.statusBrowserSources.map((source) => ({ ...source }));
 
-  try {
-    (config.server as any).statusBrowserSources = [
-      {
-        id: "demo-source",
-        label: "Demo Source",
-        url: "https://example.com/servers.json",
-      },
-    ];
+  const { event, res } = createMockEvent({
+    url: "/tools/server-browser",
+  });
 
-    const { event, res } = createMockEvent({
-      url: "/tools/server-browser",
-    });
-
-    const body = await route(event);
-    assert.equal(res.statusCode, 200);
-    assert.match(String(body), /Server Browser/i);
-    assert.match(String(body), /nsb-probe-btn/);
-    assert.match(String(body), /nsb-results-list/);
-    assert.match(String(body), /name="nsb-source"/);
-    assert.match(String(body), /value="demo-source"/);
-    assert.match(String(body), /\/javascript\/server-browser\.js/);
-  } finally {
-    (config.server as any).statusBrowserSources = originalSources;
-  }
+  const body = await route(event);
+  assert.equal(res.statusCode, 200);
+  assert.match(String(body), /Server Browser/i);
+  assert.match(String(body), /nsb-probe-btn/);
+  assert.match(String(body), /nsb-page-prev/);
+  assert.match(String(body), /nsb-page-next/);
+  assert.match(String(body), /nsb-per-page/);
+  assert.match(String(body), /nsb-results-list/);
+  assert.match(String(body), /\/javascript\/server-browser\.js/);
 });
 
 test("server list builder shared URL updates OG metadata", async () => {

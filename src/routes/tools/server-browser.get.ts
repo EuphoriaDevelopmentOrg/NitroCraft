@@ -4,8 +4,11 @@ import { respond } from "../../utils/response";
 
 const DEFAULT_PAGE_TITLE = "NitroCraft Server Browser";
 const DEFAULT_META_DESCRIPTION =
-  "Probe multiple Minecraft Java and Bedrock servers in one view with safe, bounded status checks.";
-const DEFAULT_ADDRESSES = "mc.hypixel.net\nplay.cubecraft.net";
+  "Browse Java or Bedrock server lists with paginated Minecraft status probing.";
+const DEFAULT_EDITION = "java";
+const DEFAULT_TIMEOUT_MS = 2200;
+const DEFAULT_PER_PAGE = 10;
+const MAX_PER_PAGE = 100;
 
 function escapeHtml(value: string): string {
   return value
@@ -32,23 +35,7 @@ function clampInt(value: number, fallback: number, min: number, max: number): nu
 
 export default defineEventHandler((event) => {
   const baseUrl = getExternalBaseUrl(event);
-  const maxAddresses = clampInt(config.server.statusBrowserMaxAddresses, 20, 1, 100);
   const maxConcurrency = clampInt(config.server.statusBrowserMaxConcurrency, 4, 1, 16);
-  const sourceOptions = config.server.statusBrowserSources.map((source) => ({
-    id: source.id,
-    label: source.label,
-  }));
-  const sourceOptionsHtml = sourceOptions.length
-    ? `<div class="server-browser-source-options" id="nsb-source-options">
-              ${sourceOptions.map((source) => `
-                <label class="server-browser-source-option" for="nsb-source-${escapeHtml(source.id)}">
-                  <input id="nsb-source-${escapeHtml(source.id)}" type="checkbox" name="nsb-source" value="${escapeHtml(source.id)}">
-                  <span>${escapeHtml(source.label)}</span>
-                </label>
-              `).join("")}
-            </div>
-            <p class="builder-note">Optional: pull server addresses from configured public source feeds.</p>`
-    : `<p class="builder-note">No external server sources are configured on this deployment.</p>`;
   const canonicalUrl = `${baseUrl.replace(/\/$/, "")}/tools/server-browser`;
   const safeBaseUrl = escapeHtml(baseUrl);
   const safeCanonicalUrl = escapeHtml(canonicalUrl);
@@ -86,7 +73,7 @@ export default defineEventHandler((event) => {
         <header class="builder-header">
           <p class="builder-kicker"><a href="/">NitroCraft Docs</a> / Tooling</p>
           <h1>Server Browser</h1>
-          <p>Probe multiple Minecraft servers in one request and compare online status, player counts, and MOTDs.</p>
+          <p>Browse curated Java and Bedrock targets from <code>java.json</code> and <code>bedrock.json</code>, then probe one page at a time.</p>
           <p class="builder-header-links">
             <a href="/tools/server-list">Server List Builder</a>
             <a href="/docs" target="_blank" rel="noopener noreferrer">API Docs</a>
@@ -96,24 +83,29 @@ export default defineEventHandler((event) => {
 
         <div class="builder-grid">
           <section class="builder-card">
-            <h2>Targets</h2>
-            <label for="nsb-addresses">Server Addresses</label>
-            <textarea id="nsb-addresses" rows="8" maxlength="4000" spellcheck="false">${escapeHtml(DEFAULT_ADDRESSES)}</textarea>
-            <p class="builder-note">Use one host per line. <code>host:port</code> is supported.</p>
-            ${sourceOptionsHtml}
-
+            <h2>Filters</h2>
             <div class="builder-row">
               <div>
                 <label for="nsb-edition">Edition</label>
                 <select id="nsb-edition">
-                  <option value="auto">Auto</option>
-                  <option value="java">Java</option>
+                  <option value="java" selected>Java</option>
                   <option value="bedrock">Bedrock</option>
                 </select>
               </div>
               <div>
+                <label for="nsb-per-page">Per Page</label>
+                <input id="nsb-per-page" type="number" min="1" max="${MAX_PER_PAGE}" step="1" value="${DEFAULT_PER_PAGE}">
+              </div>
+            </div>
+
+            <div class="builder-row">
+              <div>
+                <label for="nsb-page">Page</label>
+                <input id="nsb-page" type="number" min="1" step="1" value="1">
+              </div>
+              <div>
                 <label for="nsb-timeout-ms">Timeout (ms)</label>
-                <input id="nsb-timeout-ms" type="number" min="100" max="10000" step="50" value="2200">
+                <input id="nsb-timeout-ms" type="number" min="100" max="10000" step="50" value="${DEFAULT_TIMEOUT_MS}">
               </div>
             </div>
 
@@ -123,20 +115,19 @@ export default defineEventHandler((event) => {
                 <input id="nsb-concurrency" type="number" min="1" max="${maxConcurrency}" step="1" value="${Math.min(3, maxConcurrency)}">
               </div>
               <div>
-                <label for="nsb-limit">Limit</label>
-                <input id="nsb-limit" type="number" min="1" max="${maxAddresses}" step="1" value="${Math.min(10, maxAddresses)}">
+                <p class="builder-note server-browser-hint">Each page is probed via <code>/status/browser</code> using Minecraft Toolkit.</p>
               </div>
             </div>
 
             <div class="builder-actions">
-              <button id="nsb-probe-btn" type="button">Probe Servers</button>
+              <button id="nsb-probe-btn" type="button">Probe Page</button>
               <button id="nsb-reset-btn" type="button">Reset</button>
             </div>
             <p id="nsb-status" class="builder-note"></p>
           </section>
 
           <section class="builder-card">
-            <h2>Share + Limits</h2>
+            <h2>Share + Paging</h2>
             <p id="nsb-summary" class="builder-note">Run a probe to view summary stats.</p>
 
             <label for="nsb-share-url">Share URL</label>
@@ -145,7 +136,12 @@ export default defineEventHandler((event) => {
               <button id="nsb-copy-share" type="button">Copy Share URL</button>
             </div>
 
-            <p class="builder-note">This browser caps batches at <strong>${maxAddresses}</strong> targets and max concurrency <strong>${maxConcurrency}</strong> for stability.</p>
+            <div class="builder-actions server-browser-pagination">
+              <button id="nsb-page-prev" type="button">Previous Page</button>
+              <button id="nsb-page-next" type="button">Next Page</button>
+            </div>
+            <p id="nsb-page-info" class="builder-note">Page 1 of 1</p>
+            <p class="builder-note">Per-page limit is capped at <strong>${MAX_PER_PAGE}</strong>.</p>
             <p class="builder-note">Private/local targets follow the global status safety setting.</p>
           </section>
         </div>
@@ -161,9 +157,10 @@ export default defineEventHandler((event) => {
 
     <script>
       window.NITROCRAFT_SERVER_BROWSER_CONFIG = {
-        maxAddresses: ${maxAddresses},
         maxConcurrency: ${maxConcurrency},
-        sources: ${JSON.stringify(sourceOptions).replace(/</g, "\\u003c")}
+        maxPerPage: ${MAX_PER_PAGE},
+        defaultEdition: ${JSON.stringify(DEFAULT_EDITION)},
+        defaultPerPage: ${DEFAULT_PER_PAGE}
       };
     </script>
     <script src="/javascript/server-browser.js"></script>

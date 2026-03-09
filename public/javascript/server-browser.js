@@ -1,41 +1,47 @@
 (function() {
   var runtimeConfig = window.NITROCRAFT_SERVER_BROWSER_CONFIG || {};
+  var maxConcurrency = clampInt(runtimeConfig.maxConcurrency, 4, 1, 16);
+  var maxPerPage = clampInt(runtimeConfig.maxPerPage, 100, 1, 100);
+  var defaultEdition = String(runtimeConfig.defaultEdition || "java").toLowerCase() === "bedrock"
+    ? "bedrock"
+    : "java";
+  var defaultPerPage = clampInt(runtimeConfig.defaultPerPage, 10, 1, maxPerPage);
+
   var defaults = {
-    addresses: "mc.hypixel.net\nplay.cubecraft.net",
-    edition: "auto",
+    edition: defaultEdition,
     timeoutMs: 2200,
-    concurrency: 3,
-    limit: 10,
-    sources: []
+    concurrency: Math.min(3, maxConcurrency),
+    page: 1,
+    perPage: defaultPerPage
   };
+
   var DEFAULT_SERVER_ICON = "/avatars/069a79f444e94726a5befca90e38aaf5?size=64&overlay";
 
-  var maxAddresses = clampInt(runtimeConfig.maxAddresses, 20, 1, 100);
-  var maxConcurrency = clampInt(runtimeConfig.maxConcurrency, 4, 1, 16);
-  defaults.concurrency = clampInt(defaults.concurrency, Math.min(3, maxConcurrency), 1, maxConcurrency);
-  defaults.limit = clampInt(defaults.limit, Math.min(10, maxAddresses), 1, maxAddresses);
-
   var controls = {
-    addresses: document.querySelector("#nsb-addresses"),
     edition: document.querySelector("#nsb-edition"),
     timeoutMs: document.querySelector("#nsb-timeout-ms"),
     concurrency: document.querySelector("#nsb-concurrency"),
-    limit: document.querySelector("#nsb-limit"),
+    page: document.querySelector("#nsb-page"),
+    perPage: document.querySelector("#nsb-per-page"),
     probeBtn: document.querySelector("#nsb-probe-btn"),
+    prevBtn: document.querySelector("#nsb-page-prev"),
+    nextBtn: document.querySelector("#nsb-page-next"),
     resetBtn: document.querySelector("#nsb-reset-btn"),
     copyShareBtn: document.querySelector("#nsb-copy-share"),
     shareUrl: document.querySelector("#nsb-share-url"),
     summary: document.querySelector("#nsb-summary"),
+    pageInfo: document.querySelector("#nsb-page-info"),
     status: document.querySelector("#nsb-status"),
-    resultsList: document.querySelector("#nsb-results-list"),
-    sourceInputs: document.querySelectorAll("input[name='nsb-source']")
+    resultsList: document.querySelector("#nsb-results-list")
   };
 
-  if (!controls.addresses || !controls.probeBtn || !controls.resultsList) {
+  if (!controls.edition || !controls.probeBtn || !controls.resultsList) {
     return;
   }
 
   var inFlight = false;
+  var lastKnownPage = 1;
+  var lastKnownTotalPages = 1;
 
   function clampInt(value, fallback, min, max) {
     var parsed = Number.parseInt(String(value || ""), 10);
@@ -69,144 +75,40 @@
     controls.status.classList.toggle("is-ok", Boolean(!isError && message));
   }
 
-  function splitAddresses(value) {
-    return String(value || "")
-      .replaceAll("\r", "\n")
-      .split(/[\n,]/)
-      .map(function(entry) {
-        return entry.trim();
-      })
-      .filter(Boolean);
-  }
-
-  function dedupeAddresses(addresses) {
-    var seen = Object.create(null);
-    var deduped = [];
-    for (var i = 0; i < addresses.length; i++) {
-      var address = String(addresses[i] || "").trim();
-      if (!address) {
-        continue;
-      }
-      var key = address.toLowerCase();
-      if (Object.prototype.hasOwnProperty.call(seen, key)) {
-        continue;
-      }
-      seen[key] = true;
-      deduped.push(address);
-    }
-    return deduped;
-  }
-
-  function dedupeStrings(values) {
-    var seen = Object.create(null);
-    var deduped = [];
-    for (var i = 0; i < values.length; i++) {
-      var value = String(values[i] || "").trim().toLowerCase();
-      if (!value || Object.prototype.hasOwnProperty.call(seen, value)) {
-        continue;
-      }
-      seen[value] = true;
-      deduped.push(value);
-    }
-    return deduped;
-  }
-
-  function splitSourceIds(value) {
-    return String(value || "")
-      .replaceAll("\r", "\n")
-      .split(/[\n,\s]+/)
-      .map(function(entry) {
-        return entry.trim().toLowerCase();
-      })
-      .filter(Boolean);
-  }
-
-  function extractInitialAddresses(params) {
-    var values = [];
-    var direct = params.getAll("address");
-    for (var i = 0; i < direct.length; i++) {
-      values = values.concat(splitAddresses(direct[i]));
-    }
-
-    if (!values.length) {
-      var multi = params.getAll("addresses");
-      for (var j = 0; j < multi.length; j++) {
-        values = values.concat(splitAddresses(multi[j]));
-      }
-    }
-
-    return dedupeAddresses(values);
-  }
-
-  function extractInitialSources(params) {
-    var values = [];
-    var direct = params.getAll("source");
-    for (var i = 0; i < direct.length; i++) {
-      values = values.concat(splitSourceIds(direct[i]));
-    }
-    var grouped = params.getAll("sources");
-    for (var j = 0; j < grouped.length; j++) {
-      values = values.concat(splitSourceIds(grouped[j]));
-    }
-    return dedupeStrings(values);
-  }
-
-  function readSelectedSources() {
-    if (!controls.sourceInputs || !controls.sourceInputs.length) {
-      return [];
-    }
-
-    var selected = [];
-    for (var i = 0; i < controls.sourceInputs.length; i++) {
-      var input = controls.sourceInputs[i];
-      if (!input || !input.checked) {
-        continue;
-      }
-      selected.push(input.value);
-    }
-    return dedupeStrings(selected);
+  function normalizeEdition(value) {
+    return String(value || "").trim().toLowerCase() === "bedrock" ? "bedrock" : "java";
   }
 
   function readState() {
-    var addresses = dedupeAddresses(splitAddresses(controls.addresses.value));
-    var edition = String(controls.edition.value || "auto").toLowerCase();
-    if (edition !== "java" && edition !== "bedrock" && edition !== "auto") {
-      edition = "auto";
-    }
-
+    var edition = normalizeEdition(controls.edition.value || defaults.edition);
     var timeoutMs = clampInt(controls.timeoutMs.value, defaults.timeoutMs, 100, 10000);
     var concurrency = clampInt(controls.concurrency.value, defaults.concurrency, 1, maxConcurrency);
-    var limit = clampInt(controls.limit.value, defaults.limit, 1, maxAddresses);
-    var sources = readSelectedSources();
+    var page = clampInt(controls.page.value, defaults.page, 1, 100000);
+    var perPage = clampInt(controls.perPage.value, defaults.perPage, 1, maxPerPage);
 
+    controls.edition.value = edition;
     controls.timeoutMs.value = String(timeoutMs);
     controls.concurrency.value = String(concurrency);
-    controls.limit.value = String(limit);
+    controls.page.value = String(page);
+    controls.perPage.value = String(perPage);
 
     return {
-      addresses: addresses,
       edition: edition,
       timeoutMs: timeoutMs,
       concurrency: concurrency,
-      limit: limit,
-      sources: sources
+      page: page,
+      perPage: perPage
     };
   }
 
-  function buildQuery(state, includeLimit) {
+  function buildQuery(state) {
     var params = new URLSearchParams();
-    for (var i = 0; i < state.addresses.length; i++) {
-      params.append("address", state.addresses[i]);
-    }
+    params.set("dataset", state.edition);
     params.set("edition", state.edition);
+    params.set("page", String(state.page));
+    params.set("perPage", String(state.perPage));
     params.set("timeoutMs", String(state.timeoutMs));
     params.set("concurrency", String(state.concurrency));
-    for (var j = 0; j < state.sources.length; j++) {
-      params.append("source", state.sources[j]);
-    }
-    if (includeLimit) {
-      params.set("limit", String(state.limit));
-    }
     return params;
   }
 
@@ -215,7 +117,7 @@
       return;
     }
 
-    var params = buildQuery(state, true);
+    var params = buildQuery(state);
     var queryString = params.toString();
     var relative = window.location.pathname + (queryString ? ("?" + queryString) : "");
     controls.shareUrl.value = window.location.origin + relative;
@@ -481,10 +383,11 @@
     var processed = Number(payload && payload.processed);
     var succeeded = Number(payload && payload.succeeded);
     var failed = Number(payload && payload.failed);
-    var edition = String(payload && payload.edition ? payload.edition : "auto");
+    var edition = String(payload && payload.edition ? payload.edition : defaults.edition);
     var timeoutMs = Number(payload && payload.timeoutMs);
-    var sourceSucceeded = Number(payload && payload.sources && payload.sources.succeeded);
-    var sourceFailed = Number(payload && payload.sources && payload.sources.failed);
+    var page = Number(payload && payload.page);
+    var totalPages = Number(payload && payload.totalPages);
+    var totalCandidates = Number(payload && payload.totalCandidates);
 
     if (!Number.isFinite(processed) || !Number.isFinite(succeeded) || !Number.isFinite(failed)) {
       controls.summary.textContent = "Run a probe to view summary stats.";
@@ -492,15 +395,53 @@
     }
 
     var timeoutLabel = Number.isFinite(timeoutMs) ? (Math.trunc(timeoutMs) + "ms") : "n/a";
-    var sourceLabel = "";
-    if (Number.isFinite(sourceSucceeded) && Number.isFinite(sourceFailed)) {
-      sourceLabel = " Sources: " + Math.trunc(sourceSucceeded) + " ok, " + Math.trunc(sourceFailed) + " failed.";
-    }
+    var pageLabel = Number.isFinite(page) && Number.isFinite(totalPages)
+      ? ("page " + Math.trunc(page) + "/" + Math.trunc(totalPages))
+      : "page n/a";
+    var totalLabel = Number.isFinite(totalCandidates) ? (" from " + Math.trunc(totalCandidates) + " targets") : "";
 
     controls.summary.textContent =
-      "Processed " + Math.trunc(processed) +
-      " targets (" + Math.trunc(succeeded) + " ok, " + Math.trunc(failed) + " failed) using edition=" + edition +
-      " timeout=" + timeoutLabel + "." + sourceLabel;
+      "Dataset " + edition +
+      " " + pageLabel +
+      totalLabel +
+      ": processed " + Math.trunc(processed) +
+      " (" + Math.trunc(succeeded) + " ok, " + Math.trunc(failed) + " failed), timeout=" + timeoutLabel + ".";
+  }
+
+  function updatePaginationState(payload, fallbackState) {
+    var page = clampInt(payload && payload.page, fallbackState.page, 1, 100000);
+    var totalPages = clampInt(payload && payload.totalPages, Math.max(page, 1), 1, 100000);
+    var totalCandidates = Number(payload && payload.totalCandidates);
+
+    lastKnownPage = page;
+    lastKnownTotalPages = totalPages;
+    controls.page.value = String(page);
+
+    if (controls.pageInfo) {
+      var suffix = Number.isFinite(totalCandidates) ? (" (" + Math.trunc(totalCandidates) + " targets)") : "";
+      controls.pageInfo.textContent = "Page " + page + " of " + totalPages + suffix;
+    }
+
+    if (controls.prevBtn) {
+      controls.prevBtn.disabled = inFlight || page <= 1;
+    }
+    if (controls.nextBtn) {
+      controls.nextBtn.disabled = inFlight || page >= totalPages;
+    }
+  }
+
+  function updatePaginationPlaceholder(state) {
+    lastKnownPage = state.page;
+    lastKnownTotalPages = Math.max(1, state.page);
+    if (controls.pageInfo) {
+      controls.pageInfo.textContent = "Page " + state.page + " of ?";
+    }
+    if (controls.prevBtn) {
+      controls.prevBtn.disabled = inFlight || state.page <= 1;
+    }
+    if (controls.nextBtn) {
+      controls.nextBtn.disabled = inFlight;
+    }
   }
 
   function parseErrorMessage(response, payload, fallback) {
@@ -513,36 +454,40 @@
     return fallback;
   }
 
-  function probeServers() {
+  function setLoadingState(isLoading) {
+    inFlight = isLoading;
+    controls.probeBtn.disabled = isLoading;
+    controls.probeBtn.textContent = isLoading ? "Probing..." : "Probe Page";
+    if (controls.resetBtn) {
+      controls.resetBtn.disabled = isLoading;
+    }
+    if (controls.prevBtn) {
+      controls.prevBtn.disabled = isLoading || lastKnownPage <= 1;
+    }
+    if (controls.nextBtn) {
+      controls.nextBtn.disabled = isLoading || lastKnownPage >= lastKnownTotalPages;
+    }
+  }
+
+  function probeServers(optionalPage) {
     if (inFlight) {
       return;
     }
 
     var state = readState();
-    if (!state.addresses.length) {
-      setNote("Enter at least one server address first.", true);
-      controls.addresses.focus();
-      return;
-    }
-    if (state.addresses.length > maxAddresses) {
-      setNote("Too many targets. Maximum is " + maxAddresses + ".", true);
-      controls.addresses.focus();
-      return;
-    }
-
-    if (state.limit > state.addresses.length) {
-      state.limit = state.addresses.length;
-      controls.limit.value = String(state.limit);
+    if (Number.isFinite(optionalPage)) {
+      state.page = clampInt(optionalPage, state.page, 1, 100000);
+      controls.page.value = String(state.page);
     }
 
     updateShareUrl(state);
+    setLoadingState(true);
+    setNote(
+      "Probing " + state.edition + " dataset page " + state.page + " (" + state.perPage + " per page)...",
+      false
+    );
 
-    inFlight = true;
-    controls.probeBtn.disabled = true;
-    controls.probeBtn.textContent = "Probing...";
-    setNote("Probing " + state.addresses.length + " target(s)...", false);
-
-    var params = buildQuery(state, true);
+    var params = buildQuery(state);
     fetch("/status/browser?" + params.toString(), {
       cache: "no-store",
       headers: {
@@ -562,6 +507,7 @@
       .then(function(payload) {
         renderResults(payload);
         renderSummary(payload);
+        updatePaginationState(payload, state);
         var succeeded = Number(payload && payload.succeeded);
         var failed = Number(payload && payload.failed);
         if (Number.isFinite(succeeded) && Number.isFinite(failed)) {
@@ -574,9 +520,7 @@
         setNote(err && err.message ? err.message : "Server browser probe failed.", true);
       })
       .then(function() {
-        inFlight = false;
-        controls.probeBtn.disabled = false;
-        controls.probeBtn.textContent = "Probe Servers";
+        setLoadingState(false);
       });
   }
 
@@ -606,59 +550,53 @@
   }
 
   function resetForm() {
-    controls.addresses.value = defaults.addresses;
     controls.edition.value = defaults.edition;
     controls.timeoutMs.value = String(defaults.timeoutMs);
     controls.concurrency.value = String(defaults.concurrency);
-    controls.limit.value = String(defaults.limit);
-    if (controls.sourceInputs && controls.sourceInputs.length) {
-      for (var i = 0; i < controls.sourceInputs.length; i++) {
-        controls.sourceInputs[i].checked = false;
-      }
-    }
+    controls.page.value = String(defaults.page);
+    controls.perPage.value = String(defaults.perPage);
     setNote("", false);
     if (controls.summary) {
       controls.summary.textContent = "Run a probe to view summary stats.";
     }
     clearResults();
-    updateShareUrl(readState());
+    var state = readState();
+    updateShareUrl(state);
+    updatePaginationPlaceholder(state);
   }
 
   function applyInitialState() {
     var params = new URLSearchParams(window.location.search);
-    var initialAddresses = extractInitialAddresses(params);
-    var initialSources = extractInitialSources(params);
-    var selectAllSources = initialSources.indexOf("all") > -1;
-    if (initialAddresses.length) {
-      controls.addresses.value = initialAddresses.join("\n");
-    } else {
-      controls.addresses.value = defaults.addresses;
-    }
+    var dataset = normalizeEdition(params.get("dataset") || params.get("edition") || defaults.edition);
+    var timeoutMs = clampInt(params.get("timeoutMs"), defaults.timeoutMs, 100, 10000);
+    var concurrency = clampInt(params.get("concurrency"), defaults.concurrency, 1, maxConcurrency);
+    var page = clampInt(params.get("page"), defaults.page, 1, 100000);
+    var perPage = clampInt(params.get("perPage"), defaults.perPage, 1, maxPerPage);
 
-    var edition = String(params.get("edition") || "").trim().toLowerCase();
-    controls.edition.value = (edition === "java" || edition === "bedrock" || edition === "auto")
-      ? edition
-      : defaults.edition;
+    controls.edition.value = dataset;
+    controls.timeoutMs.value = String(timeoutMs);
+    controls.concurrency.value = String(concurrency);
+    controls.page.value = String(page);
+    controls.perPage.value = String(perPage);
 
-    controls.timeoutMs.value = String(clampInt(params.get("timeoutMs"), defaults.timeoutMs, 100, 10000));
-    controls.concurrency.value = String(clampInt(params.get("concurrency"), defaults.concurrency, 1, maxConcurrency));
-    controls.limit.value = String(clampInt(params.get("limit"), defaults.limit, 1, maxAddresses));
-    if (controls.sourceInputs && controls.sourceInputs.length) {
-      for (var i = 0; i < controls.sourceInputs.length; i++) {
-        var input = controls.sourceInputs[i];
-        if (!input) {
-          continue;
-        }
-        var inputValue = String(input.value || "").trim().toLowerCase();
-        var isSelected = selectAllSources || initialSources.indexOf(inputValue) > -1;
-        input.checked = isSelected;
-      }
-    }
-
-    updateShareUrl(readState());
+    var state = readState();
+    updateShareUrl(state);
+    updatePaginationPlaceholder(state);
   }
 
-  controls.probeBtn.addEventListener("click", probeServers);
+  controls.probeBtn.addEventListener("click", function() {
+    probeServers();
+  });
+  if (controls.prevBtn) {
+    controls.prevBtn.addEventListener("click", function() {
+      probeServers(clampInt(controls.page.value, 1, 1, 100000) - 1);
+    });
+  }
+  if (controls.nextBtn) {
+    controls.nextBtn.addEventListener("click", function() {
+      probeServers(clampInt(controls.page.value, 1, 1, 100000) + 1);
+    });
+  }
   if (controls.resetBtn) {
     controls.resetBtn.addEventListener("click", resetForm);
   }
@@ -667,30 +605,29 @@
   }
 
   var reactiveControls = [
-    controls.addresses,
     controls.edition,
     controls.timeoutMs,
     controls.concurrency,
-    controls.limit
+    controls.page,
+    controls.perPage
   ];
   for (var i = 0; i < reactiveControls.length; i++) {
     if (!reactiveControls[i]) {
       continue;
     }
-    reactiveControls[i].addEventListener("input", function() {
-      updateShareUrl(readState());
-    });
-  }
-  if (controls.sourceInputs && controls.sourceInputs.length) {
-    for (var j = 0; j < controls.sourceInputs.length; j++) {
-      if (!controls.sourceInputs[j]) {
-        continue;
+    reactiveControls[i].addEventListener("input", function(event) {
+      if (event && event.target === controls.edition) {
+        controls.page.value = "1";
       }
-      controls.sourceInputs[j].addEventListener("change", function() {
-        updateShareUrl(readState());
-      });
-    }
+      if (event && event.target === controls.perPage) {
+        controls.page.value = "1";
+      }
+      var state = readState();
+      updateShareUrl(state);
+      updatePaginationPlaceholder(state);
+    });
   }
 
   applyInitialState();
+  probeServers();
 })();
