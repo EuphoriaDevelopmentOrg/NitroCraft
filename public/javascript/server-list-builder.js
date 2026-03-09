@@ -116,6 +116,10 @@
     }
   }
 
+  function encodeSafeIconSource(value) {
+    return encodeURI(sanitizeIconSource(value));
+  }
+
   function setNote(element, message, isError) {
     if (!element) {
       return;
@@ -539,7 +543,7 @@
     preview.name.textContent = fallbackName;
     preview.version.textContent = state.version ? ("v" + state.version) : "";
     preview.players.textContent = players;
-    preview.icon.src = state.icon || defaults.icon;
+    preview.icon.src = encodeSafeIconSource(state.icon);
     updatePingBars(preview.ping, state.ping);
 
     scheduleMotdRender();
