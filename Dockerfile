@@ -50,6 +50,8 @@ RUN mkdir -p images/faces images/helms images/skins images/renders images/capes
 COPY --chown=app:app --from=builder /home/app/nitrocraft/node_modules ./node_modules
 COPY --chown=app:app --from=builder /home/app/nitrocraft/.output ./.output
 COPY --chown=app:app --from=builder /home/app/nitrocraft/package.json ./package.json
+COPY --chown=app:app --from=builder /home/app/nitrocraft/java.json ./java.json
+COPY --chown=app:app --from=builder /home/app/nitrocraft/bedrock.json ./bedrock.json
 
 VOLUME /home/app/nitrocraft/images
 ENV NODE_ENV=production

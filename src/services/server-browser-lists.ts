@@ -112,15 +112,26 @@ function extractAddresses(payload: unknown): string[] {
 async function readDatasetFile(dataset: ServerBrowserDataset): Promise<string> {
   const filename = DATASET_FILENAMES[dataset];
   const cwd = process.cwd();
+  const knownRuntimeRoots = [
+    "/home/container",
+    "/home/app/nitrocraft",
+  ];
+  const knownRuntimeCandidates = knownRuntimeRoots.flatMap((root) => [
+    resolve(root, filename),
+    resolve(root, ".output", filename),
+    resolve(root, ".output", "server", filename),
+  ]);
   const candidates = [
+    ...knownRuntimeCandidates,
     resolve(cwd, filename),
     resolve(cwd, "..", filename),
     resolve(cwd, "..", "..", filename),
     resolve(cwd, ".output", filename),
     resolve(cwd, ".output", "server", filename),
   ];
+  const deduped = Array.from(new Set(candidates));
 
-  for (const path of candidates) {
+  for (const path of deduped) {
     try {
       return await readFile(path, "utf8");
     } catch {
